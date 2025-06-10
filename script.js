@@ -411,7 +411,6 @@ document.addEventListener("DOMContentLoaded", () => {
     resultTextInput.value = savedGarbledText;
     originalTextInput.value = translateGarbledText(savedGarbledText); 
   } else {
-    originalTextInput.value = "Ini adalah pesan rahasia yang ingin saya acak!";
   }
 
   if (savedQrCodeValue) {
