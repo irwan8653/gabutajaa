@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Multi Aplikasi Irwan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #111827;
+        color: #e5e7eb;
+      }
+      .app-container {
+        background-color: #1f2937;
+        border-radius: 1.5rem;
+        box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.2);
+      }
+      .tab-btn {
+        transition: all 0.3s ease;
+        border-bottom: 3px solid transparent;
+      }
+      .tab-btn.active {
+        border-bottom-color: #4f46e5;
+        color: white;
+      }
+      .app-content {
+        display: none;
+      }
+      .app-content.active {
+        display: block;
+        animation: fadeIn 0.5s ease-out;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .translate-panel textarea {
+        background-color: #374151;
+        border: 2px solid #4b5563;
+        color: white;
+        transition: all 0.3s ease-in-out;
+      }
+      .translate-panel textarea:focus {
+        outline: none;
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+      }
+      .panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+        color: #9ca3af;
+      }
+      .panel-actions button {
+        background: none;
+        border: none;
+        color: #9ca3af;
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 50%;
+      }
+      .panel-actions button:hover {
+        background-color: #4b5563;
+        color: white;
+      }
+      .btn {
+        transition: all 0.2s ease-in-out;
+      }
+      .btn:hover:not(:disabled) {
+        transform: translateY(-2px);
+      }
+      .btn:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+      .btn-primary {
+        background-color: #4f46e5;
+      }
+      .btn-primary:hover:not(:disabled) {
+        background-color: #4338ca;
+      }
+      .btn-secondary {
+        background-color: #374151;
+      }
+      .btn-secondary:hover:not(:disabled) {
+        background-color: #4b5563;
+      }
+      .hidden-view {
+        display: none;
+      }
+      #toast-notification {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 12px 24px;
+        border-radius: 8px;
+        color: white;
+        z-index: 100;
+        transition: opacity 0.5s, top 0.5s;
+        opacity: 0;
+        pointer-events: none;
+      }
+      #toast-notification.show {
+        top: 40px;
+        opacity: 1;
+      }
+      .toast-success {
+        background-color: #16a34a;
+      }
+      .toast-error {
+        background-color: #dc2626;
+      }
+      .toast-info {
+        background-color: #2563eb;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen p-4 flex flex-col items-center">
+    <h1
+      class="text-3xl sm:text-4xl font-extrabold text-center text-white mb-8 font-poppins"
+    >
+      Game Gabut
+    </h1>
+
+    <div class="app-container w-full max-w-4xl p-6">
+      <div class="flex justify-center border-b border-gray-700 mb-6">
+        <button
+          id="mainTabGenerator"
+          class="tab-btn py-3 px-4 sm:px-6 text-base sm:text-lg font-semibold"
+        >
+          Generator
+        </button>
+        <button
+          id="mainTabBKG"
+          class="tab-btn py-3 px-4 sm:px-6 text-base sm:text-lg font-semibold"
+        >
+          Batu Gunting Kertas
+        </button>
+      </div>
+
+      <div id="generatorApp" class="app-content">
+        <div class="mb-4">
+          <label for="generatorType" class="sr-only"
+            >Pilih Jenis Generator</label
+          >
+          <select
+            id="generatorType"
+            class="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="text-to-garbled">Teks Asli → Teks Aneh</option>
+            <option value="garbled-to-text">Teks Aneh → Teks Asli</option>
+            <option value="text-to-morse">Teks → Kode Morse</option>
+            <option value="morse-to-text">Kode Morse → Teks</option>
+          </select>
+        </div>
+        <div
+          class="translate-container grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 items-start"
+        >
+          <div class="translate-panel flex flex-col">
+            <div class="panel-header">
+              <span id="input-lang-label">Teks Asli</span>
+              <div class="panel-actions">
+                <button id="input-copy-btn" title="Salin">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                    />
+                  </svg>
+                </button>
+                <button id="input-clear-btn" title="Bersihkan">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-5 w-5"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <textarea
+              id="inputText"
+              class="w-full p-4 rounded-lg resize-y flex-grow min-h-[150px] md:min-h-[200px]"
+              placeholder="Masukkan teks..."
+            ></textarea>
+          </div>
+
+          <div class="flex items-center justify-center">
+            <button
+              id="swap-btn"
+              class="p-3 rounded-full hover:bg-gray-600 transition-all transform md:rotate-0 rotate-90"
+              title="Tukar Bahasa"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+                />
+              </svg>
+            </button>
+          </div>
+
+          <div class="translate-panel flex flex-col">
+            <div class="panel-header">
+              <span id="output-lang-label">Teks Aneh</span>
+              <div class="panel-actions">
+                <button id="output-copy-btn" title="Salin Hasil">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <textarea
+              id="outputText"
+              readonly
+              class="w-full p-4 rounded-lg resize-y flex-grow bg-gray-800 min-h-[150px] md:min-h-[200px]"
+              placeholder="Hasil..."
+            ></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div id="bkgApp" class="app-content">
+        <div id="toast-notification"></div>
+        <div id="lobby-view" class="w-full max-w-md text-center mx-auto">
+          <h2 class="font-title text-3xl font-bold mb-4">Game Lobi</h2>
+          <div class="bg-gray-800 p-6 rounded-xl shadow-lg mb-8 text-left">
+            <h3 class="font-bold text-lg mb-2 text-center">Cara Bermain</h3>
+            <ol class="list-decimal list-inside text-gray-300 space-y-1">
+              <li>Masukkan nama Anda.</li>
+              <li>
+                <b>Buat Room:</b> Klik "Buat Room Baru" & bagikan kodenya.
+              </li>
+              <li>
+                <b>Gabung Room:</b> Masukkan kode dari teman & klik "Gabung".
+              </li>
+            </ol>
+          </div>
+          <div class="bg-gray-800 p-8 rounded-xl shadow-2xl">
+            <input
+              id="player-name-input"
+              type="text"
+              placeholder="Masukkan Nama Anda"
+              class="w-full bg-gray-700 text-white placeholder-gray-400 p-3 rounded-lg mb-4 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            /><button
+              id="create-room-btn"
+              class="btn btn-primary w-full py-3 rounded-lg font-semibold text-lg mb-4"
+            >
+              Buat Room Baru
+            </button>
+            <div class="flex items-center my-6">
+              <hr class="w-full border-gray-600" />
+              <span class="px-4 text-gray-400">ATAU</span>
+              <hr class="w-full border-gray-600" />
+            </div>
+            <input
+              id="room-code-input"
+              type="text"
+              placeholder="Masukkan Kode Room"
+              class="w-full bg-gray-700 text-white placeholder-gray-400 p-3 rounded-lg mb-4 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            /><button
+              id="join-room-btn"
+              class="btn btn-secondary w-full py-3 rounded-lg font-semibold text-lg"
+            >
+              Gabung Room
+            </button>
+            <p id="lobby-error" class="text-red-400 mt-4 h-5"></p>
+          </div>
+        </div>
+        <div
+          id="game-view"
+          class="w-full max-w-3xl text-center hidden-view mx-auto"
+        >
+          <div
+            class="flex flex-col sm:flex-row sm:justify-between items-center mb-4 gap-3 sm:gap-0"
+          >
+            <button
+              id="leave-room-btn"
+              class="btn btn-secondary py-2 px-4 rounded-lg w-full sm:w-auto order-2 sm:order-1"
+            >
+              ← Keluar
+            </button>
+            <div class="text-center order-1 sm:order-2">
+              <p class="text-sm text-gray-400">KODE ROOM</p>
+              <div class="flex items-center justify-center gap-2">
+                <strong
+                  id="room-code-display"
+                  class="text-2xl font-bold tracking-widest text-yellow-400"
+                ></strong>
+                <button id="copy-code-btn" title="Salin Kode">📋</button>
+              </div>
+            </div>
+            <div class="hidden sm:block order-3" style="width: 110px"></div>
+          </div>
+
+          <p
+            id="status-message"
+            class="text-indigo-300 text-lg mb-4 mt-6 sm:mt-0"
+          >
+            Menginisialisasi permainan...
+          </p>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 mb-6">
+            <div
+              id="p1-card"
+              class="bg-gray-800 p-4 md:p-6 rounded-xl shadow-lg border-2 border-transparent"
+            >
+              <h2 id="player1-name" class="text-xl font-semibold mb-4 truncate">
+                Pemain 1
+              </h2>
+              <div
+                class="bg-gray-700 w-24 h-24 md:w-32 md:h-32 mx-auto rounded-lg flex items-center justify-center"
+              >
+                <span id="player1-choice-text" class="text-4xl md:text-5xl"
+                  >?</span
+                >
+              </div>
+            </div>
+            <div
+              id="p2-card"
+              class="bg-gray-800 p-4 md:p-6 rounded-xl shadow-lg border-2 border-transparent"
+            >
+              <h2 id="player2-name" class="text-xl font-semibold mb-4 truncate">
+                Pemain 2
+              </h2>
+              <div
+                class="bg-gray-700 w-24 h-24 md:w-32 md:h-32 mx-auto rounded-lg flex items-center justify-center"
+              >
+                <span id="player2-choice-text" class="text-4xl md:text-5xl"
+                  >?</span
+                >
+              </div>
+            </div>
+          </div>
+          <div class="h-12 mb-4">
+            <h2
+              id="result-message"
+              class="text-3xl font-bold text-yellow-400"
+            ></h2>
+          </div>
+          <div
+            id="choices"
+            class="flex justify-center items-center gap-4 md:gap-6 mb-8"
+          >
+            <button
+              id="rock"
+              class="btn text-4xl p-4 bg-indigo-600 rounded-full shadow-lg"
+            >
+              ✊
+            </button>
+            <button
+              id="paper"
+              class="btn text-4xl p-4 bg-indigo-600 rounded-full shadow-lg"
+            >
+              ✋
+            </button>
+            <button
+              id="scissors"
+              class="btn text-4xl p-4 bg-indigo-600 rounded-full shadow-lg"
+            >
+              ✌
+            </button>
+          </div>
+          <button
+            id="play-again-btn"
+            class="hidden-view btn btn-primary font-bold py-3 px-8 rounded-lg text-xl"
+          ></button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      // Firebase Imports
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+      import {
+        getAuth,
+        signInAnonymously,
+        onAuthStateChanged,
+      } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+      import {
+        getFirestore,
+        doc,
+        onSnapshot,
+        setDoc,
+        updateDoc,
+        getDoc,
+        collection,
+        deleteDoc,
+      } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+      // PERUBAHAN: Menambahkan import untuk Realtime Database (RTDB)
+      import {
+        getDatabase,
+        ref,
+        onValue,
+        set,
+        onDisconnect,
+        remove,
+      } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+
+      // --- GLOBAL APP SWITCHER LOGIC ---
+      // ... (tidak ada perubahan di sini)
+      const mainTabGenerator = document.getElementById("mainTabGenerator");
+      const mainTabBKG = document.getElementById("mainTabBKG");
+      const generatorApp = document.getElementById("generatorApp");
+      const bkgApp = document.getElementById("bkgApp");
+
+      function switchMainApp(appId) {
+        generatorApp.classList.remove("active");
+        bkgApp.classList.remove("active");
+        mainTabGenerator.classList.remove("active");
+        mainTabBKG.classList.remove("active");
+
+        if (appId === "generator") {
+          generatorApp.classList.add("active");
+          mainTabGenerator.classList.add("active");
+        } else if (appId === "bkg") {
+          bkgApp.classList.add("active");
+          mainTabBKG.classList.add("active");
+        }
+      }
+      mainTabGenerator.addEventListener("click", () =>
+        switchMainApp("generator")
+      );
+      mainTabBKG.addEventListener("click", () => switchMainApp("bkg"));
+      switchMainApp("bkg");
+
+      // --- GENERATOR APP LOGIC ---
+      // ... (tidak ada perubahan di sini)
+      const generatorType = document.getElementById("generatorType"),
+        inputText = document.getElementById("inputText"),
+        outputText = document.getElementById("outputText"),
+        swapBtn = document.getElementById("swap-btn"),
+        inputLangLabel = document.getElementById("input-lang-label"),
+        outputLangLabel = document.getElementById("output-lang-label"),
+        inputCopyBtn = document.getElementById("input-copy-btn"),
+        outputCopyBtn = document.getElementById("output-copy-btn"),
+        inputClearBtn = document.getElementById("input-clear-btn"),
+        ENCRYPTION_MAP = {},
+        DECRYPTION_MAP = {},
+        alphabet = "abcdefghijklmnopqrstuvwxyz";
+      for (let e = 0; e < alphabet.length; e++) {
+        const t = alphabet[e],
+          a = alphabet[alphabet.length - 1 - e];
+        (ENCRYPTION_MAP[t] = a), (DECRYPTION_MAP[a] = t);
+      }
+      const MORSE_CODE_MAP = {
+        A: "•-",
+        B: "-•••",
+        C: "-•-•",
+        D: "-••",
+        E: "•",
+        F: "••-•",
+        G: "--•",
+        H: "••••",
+        I: "••",
+        J: "•---",
+        K: "-•-",
+        L: "•-••",
+        M: "--",
+        N: "-•",
+        O: "---",
+        P: "•--•",
+        Q: "--•-",
+        R: "•-•",
+        S: "•••",
+        T: "-",
+        U: "••-",
+        V: "•••-",
+        W: "•--",
+        X: "-••-",
+        Y: "-•--",
+        Z: "--••",
+        0: "-----",
+        1: "•----",
+        2: "••---",
+        3: "•••--",
+        4: "••••-",
+        5: "•••••",
+        6: "-••••",
+        7: "--•••",
+        8: "---••",
+        9: "----•",
+      };
+      const REVERSE_MORSE_MAP = Object.fromEntries(
+          Object.entries(MORSE_CODE_MAP).map((e) => e.reverse())
+        ),
+        garbledFn = (e) =>
+          e
+            .split("")
+            .map((e) => {
+              if (e >= "a" && e <= "z") return ENCRYPTION_MAP[e];
+              if (e >= "A" && e <= "Z")
+                return ENCRYPTION_MAP[e.toLowerCase()].toUpperCase();
+              return e;
+            })
+            .join(""),
+        ungarbledFn = (e) =>
+          e
+            .split("")
+            .map((e) => {
+              if (e >= "a" && e <= "z") return DECRYPTION_MAP[e];
+              if (e >= "A" && e <= "Z")
+                return DECRYPTION_MAP[e.toLowerCase()].toUpperCase();
+              return e;
+            })
+            .join("");
+      const textToMorseFn = (text) =>
+        text
+          .toUpperCase()
+          .split("")
+          .map((c) => MORSE_CODE_MAP[c] || (c === " " ? "/" : ""))
+          .join("   ");
+      const morseToTextFn = (morse) =>
+        morse
+          .trim()
+          .split(/[\s]{2,}/)
+          .map((c) => REVERSE_MORSE_MAP[c] || (c === "/" ? " " : ""))
+          .join("");
+      function translate() {
+        const e = generatorType.value,
+          t = inputText.value,
+          a = translationFunctions[e];
+        a && (outputText.value = a(t));
+      }
+      function updateLabels() {
+        const [e, t] = generatorType.value.split("-to-");
+        (inputLangLabel.textContent = e
+          .replace(/-/g, " ")
+          .replace(/\b\w/g, (e) => e.toUpperCase())),
+          (outputLangLabel.textContent = t
+            .replace(/-/g, " ")
+            .replace(/\b\w/g, (e) => e.toUpperCase()));
+      }
+      const translationFunctions = {
+        "text-to-garbled": garbledFn,
+        "garbled-to-text": ungarbledFn,
+        "text-to-morse": textToMorseFn,
+        "morse-to-text": morseToTextFn,
+      };
+      inputText.addEventListener("input", translate),
+        generatorType.addEventListener("change", () => {
+          updateLabels(), translate();
+        }),
+        swapBtn.addEventListener("click", () => {
+          [inputText.value, outputText.value] = [
+            outputText.value,
+            inputText.value,
+          ];
+          const [e, t] = generatorType.value.split("-to-"),
+            a = `${t}-to-${e}`;
+          Array.from(generatorType.options).some((e) => e.value === a) &&
+            (generatorType.value = a),
+            updateLabels(),
+            translate();
+        }),
+        inputCopyBtn.addEventListener("click", () =>
+          navigator.clipboard.writeText(inputText.value)
+        ),
+        outputCopyBtn.addEventListener("click", () =>
+          navigator.clipboard.writeText(outputText.value)
+        ),
+        inputClearBtn.addEventListener("click", () => {
+          (inputText.value = ""), (outputText.value = "");
+        }),
+        updateLabels();
+
+      // --- BATU GUNTING KERTAS APP LOGIC ---
+      const bkg_firebaseConfig = {
+        apiKey: "AIzaSyCXU7oqo3m3ry7om9qQ5zfOGTu-mL_YOrc",
+        authDomain: "realtime-database-99f23.firebaseapp.com",
+        projectId: "realtime-database-99f23",
+        storageBucket: "realtime-database-99f23.appspot.com",
+        messagingSenderId: "642043922874",
+        appId: "1:642043922874:web:6222047848a815392cf583",
+        // PERUBAHAN: Tambahkan databaseURL untuk RTDB
+        databaseURL:
+          "https://realtime-database-99f23-default-rtdb.asia-southeast1.firebasedatabase.app",
+      };
+
+      const bkg_app = initializeApp(bkg_firebaseConfig, "BKG_APP");
+      const bkg_auth = getAuth(bkg_app);
+      const bkg_db = getFirestore(bkg_app);
+      // PERUBAHAN: Inisialisasi Realtime Database
+      const bkg_rtdb = getDatabase(bkg_app);
+      const bkg_gamesCollection = collection(bkg_db, "rps-rooms");
+
+      // ... (DOM Elements tidak berubah)
+      const bkg_lobbyView = document.getElementById("lobby-view"),
+        bkg_gameView = document.getElementById("game-view"),
+        bkg_playerNameInput = document.getElementById("player-name-input"),
+        bkg_createRoomBtn = document.getElementById("create-room-btn"),
+        bkg_roomCodeInput = document.getElementById("room-code-input"),
+        bkg_joinRoomBtn = document.getElementById("join-room-btn"),
+        bkg_lobbyError = document.getElementById("lobby-error"),
+        bkg_roomCodeDisplay = document.getElementById("room-code-display"),
+        bkg_copyCodeBtn = document.getElementById("copy-code-btn"),
+        bkg_leaveRoomBtn = document.getElementById("leave-room-btn"),
+        bkg_statusMessage = document.getElementById("status-message"),
+        bkg_player1NameEl = document.getElementById("player1-name"),
+        bkg_player2NameEl = document.getElementById("player2-name"),
+        bkg_player1ChoiceText = document.getElementById("player1-choice-text"),
+        bkg_player2ChoiceText = document.getElementById("player2-choice-text"),
+        bkg_resultMessage = document.getElementById("result-message"),
+        bkg_choices = document.getElementById("choices"),
+        bkg_playAgainBtn = document.getElementById("play-again-btn"),
+        bkg_toast = document.getElementById("toast-notification");
+
+      let bkg_currentUserId = null,
+        bkg_currentPlayerName = "",
+        bkg_currentRoomId = null,
+        bkg_playerNumber = null,
+        bkg_unsubscribeGame = null;
+      // PERUBAHAN: Menambahkan variabel untuk listener status RTDB
+      let bkg_toastTimeout,
+        afkTimeout = null,
+        countdownInterval = null,
+        rtdbListener = null;
+
+      // ... (fungsi bkg_showToast, bkg_switchView, bkg_resetGameState tidak berubah signifikan)
+      const bkg_showToast = (message, type = "info") => {
+        clearTimeout(bkg_toastTimeout),
+          (bkg_toast.textContent = message),
+          (bkg_toast.className = `toast-${type}`),
+          bkg_toast.classList.add("show"),
+          (bkg_toastTimeout = setTimeout(() => {
+            bkg_toast.classList.remove("show");
+          }, 4e3));
+      };
+      const bkg_switchView = (view) => {
+        if (view === "game") {
+          bkg_lobbyView.classList.add("hidden-view"),
+            bkg_gameView.classList.remove("hidden-view");
+        } else {
+          bkg_gameView.classList.add("hidden-view"),
+            bkg_lobbyView.classList.remove("hidden-view"),
+            bkg_unsubscribeGame && bkg_unsubscribeGame(),
+            rtdbListener && rtdbListener(),
+            bkg_resetGameState();
+        }
+      };
+      const bkg_resetGameState = () => {
+        (bkg_currentRoomId = null),
+          (bkg_playerNumber = null),
+          (bkg_unsubscribeGame = null),
+          (rtdbListener = null),
+          (bkg_lobbyError.textContent = ""),
+          (bkg_roomCodeInput.value = ""),
+          clearTimeout(afkTimeout),
+          clearInterval(countdownInterval);
+      };
+
+      // ... (fungsi lobby seperti create dan join room tidak berubah signifikan)
+      bkg_createRoomBtn.addEventListener("click", async () => {
+        const name = bkg_playerNameInput.value.trim();
+        if (!name)
+          return (
+            (bkg_lobbyError.textContent = "Nama tidak boleh kosong."), void 0
+          );
+        bkg_currentPlayerName = name;
+        const roomId = Math.random().toString(36).substring(2, 7).toUpperCase();
+        const gameRef = doc(bkg_gamesCollection, roomId);
+        await setDoc(gameRef, {
+          players: {
+            player1: {
+              uid: bkg_currentUserId,
+              name: bkg_currentPlayerName,
+              choice: null,
+              wantsToPlayAgain: !1,
+              status: "online",
+            },
+            player2: null,
+          },
+          createdAt: new Date(),
+        }),
+          bkg_joinRoom(roomId);
+      });
+      bkg_joinRoomBtn.addEventListener("click", async () => {
+        const name = bkg_playerNameInput.value.trim();
+        if (!name)
+          return (
+            (bkg_lobbyError.textContent = "Nama tidak boleh kosong."), void 0
+          );
+        bkg_currentPlayerName = name;
+        const roomId = bkg_roomCodeInput.value.trim().toUpperCase();
+        if (!roomId)
+          return (
+            (bkg_lobbyError.textContent = "Kode room tidak boleh kosong."),
+            void 0
+          );
+        const gameRef = doc(bkg_gamesCollection, roomId),
+          docSnap = await getDoc(gameRef);
+        docSnap.exists()
+          ? docSnap.data().players.player2
+            ? (bkg_lobbyError.textContent = "Room ini sudah penuh.")
+            : (await updateDoc(gameRef, {
+                "players.player2": {
+                  uid: bkg_currentUserId,
+                  name: bkg_currentPlayerName,
+                  choice: null,
+                  wantsToPlayAgain: !1,
+                  status: "online",
+                },
+              }),
+              bkg_joinRoom(roomId))
+          : (bkg_lobbyError.textContent = "Room tidak ditemukan.");
+      });
+
+      // PERUBAHAN: Fungsi join room sekarang mengatur status kehadiran di RTDB
+      const bkg_joinRoom = (roomId) => {
+        bkg_currentRoomId = roomId;
+        bkg_switchView("game");
+        bkg_roomCodeDisplay.textContent = roomId;
+
+        // Set up presence in RTDB
+        const userStatusRef = ref(
+          bkg_rtdb,
+          `/status/${roomId}/${bkg_currentUserId}`
+        );
+        onDisconnect(userStatusRef).remove();
+        set(userStatusRef, true);
+
+        bkg_listenToGameUpdates(roomId);
+      };
+
+      // PERUBAHAN: Tombol keluar juga membersihkan status di RTDB
+      bkg_leaveRoomBtn.addEventListener("click", async () => {
+        if (!bkg_currentRoomId || !bkg_playerNumber) return;
+
+        const userStatusRef = ref(
+          bkg_rtdb,
+          `/status/${bkg_currentRoomId}/${bkg_currentUserId}`
+        );
+        remove(userStatusRef); // Hapus status online secara manual
+
+        const gameRef = doc(bkg_gamesCollection, bkg_currentRoomId);
+        if (bkg_playerNumber === "player1") {
+          await deleteDoc(gameRef);
+        } else {
+          await updateDoc(gameRef, { "players.player2": null });
+        }
+        bkg_switchView("lobby");
+      });
+
+      bkg_copyCodeBtn.addEventListener("click", () => {
+        navigator.clipboard
+          .writeText(bkg_currentRoomId)
+          .then(() => bkg_showToast("Kode room disalin!", "success"));
+      });
+
+      // PERUBAHAN: Fungsi listener utama sekarang juga memantau status online dari RTDB
+      function bkg_listenToGameUpdates(roomId) {
+        const gameRef = doc(bkg_gamesCollection, roomId);
+        bkg_unsubscribeGame = onSnapshot(gameRef, (docSnap) => {
+          if (!docSnap.exists()) {
+            if ("player2" === bkg_playerNumber) {
+              bkg_showToast("Room ditutup oleh host.", "error");
+              setTimeout(() => bkg_switchView("lobby"), 3e3);
+            }
+            return;
+          }
+          const gameState = docSnap.data();
+
+          // Pantau status online dari RTDB
+          const roomStatusRef = ref(bkg_rtdb, `/status/${roomId}`);
+          rtdbListener = onValue(roomStatusRef, (statusSnap) => {
+            const onlineUsers = statusSnap.val() || {};
+            handleDisconnects(gameState, onlineUsers);
+          });
+
+          bkg_updateUI(gameState);
+        });
+      }
+
+      // PERUBAHAN: Fungsi baru untuk menangani jika ada pemain disconnect
+      async function handleDisconnects(gameState, onlineUsers) {
+        const { players } = gameState;
+        const p1 = players.player1;
+        const p2 = players.player2;
+
+        if (p1 && !onlineUsers[p1.uid] && p1.status === "online") {
+          // Player 1 disconnect
+          await updateDoc(doc(bkg_db, "rps-rooms", bkg_currentRoomId), {
+            "players.player1.status": "offline",
+          });
+        }
+        if (p2 && !onlineUsers[p2.uid] && p2.status === "online") {
+          // Player 2 disconnect
+          await updateDoc(doc(bkg_db, "rps-rooms", bkg_currentRoomId), {
+            "players.player2.status": "offline",
+          });
+        }
+      }
+
+      // PERUBAHAN: UI sekarang merespons status 'offline'
+      function bkg_updateUI(gameState) {
+        const { players } = gameState,
+          p1 = players.player1,
+          p2 = players.player2;
+        p1?.uid === bkg_currentUserId
+          ? (bkg_playerNumber = "player1")
+          : p2?.uid === bkg_currentUserId && (bkg_playerNumber = "player2");
+        if (!bkg_playerNumber || !players[bkg_playerNumber]) return;
+
+        // Cek status disconnect lawan
+        const opponentPlayerNumber =
+          bkg_playerNumber === "player1" ? "player2" : "player1";
+        const opponent = players[opponentPlayerNumber];
+        if (opponent && opponent.status === "offline") {
+          bkg_statusMessage.textContent = "Lawan telah keluar dari permainan.";
+          bkg_choices.classList.add("hidden");
+          bkg_playAgainBtn.classList.add("hidden-view");
+          bkg_resultMessage.textContent = "";
+          return; // Hentikan update UI lebih lanjut
+        }
+
+        bkg_player1NameEl.textContent = p1?.name || "Pemain 1";
+        bkg_player2NameEl.textContent = p2?.name || "Menunggu...";
+        const choiceMap = { rock: "✊", paper: "✋", scissors: "✌" };
+        const displayChoice = (player, element, isOpponent) => {
+          if (player?.choice) {
+            if (!isOpponent || (p1?.choice && p2?.choice)) {
+              element.textContent = choiceMap[player.choice];
+            } else {
+              element.textContent = "✅";
+            }
+          } else {
+            element.textContent = "?";
+          }
+        };
+        displayChoice(
+          p1,
+          bkg_player1ChoiceText,
+          "player1" !== bkg_playerNumber
+        );
+        displayChoice(
+          p2,
+          bkg_player2ChoiceText,
+          "player2" !== bkg_playerNumber
+        );
+        clearTimeout(afkTimeout);
+        clearInterval(countdownInterval);
+        if (p2) {
+          if (p1.choice && p2.choice) {
+            bkg_choices.classList.add("hidden"),
+              bkg_playAgainBtn.classList.remove("hidden-view");
+            const winner = determineWinner(p1.choice, p2.choice);
+            "draw" === winner
+              ? (bkg_resultMessage.textContent = "Hasilnya Seri!")
+              : winner === bkg_playerNumber
+              ? (bkg_resultMessage.textContent = "Kamu Menang! 🎉")
+              : (bkg_resultMessage.textContent = "Kamu Kalah! 😞");
+            const me = players[bkg_playerNumber],
+              opponent = players[opponentPlayerNumber];
+            me.wantsToPlayAgain
+              ? ((bkg_playAgainBtn.textContent = "Menunggu Lawan..."),
+                (bkg_playAgainBtn.disabled = !0),
+                (bkg_statusMessage.textContent =
+                  "Menunggu persetujuan lawan..."))
+              : ((bkg_playAgainBtn.textContent = "Main Lagi"),
+                (bkg_playAgainBtn.disabled = !1),
+                opponent && opponent.wantsToPlayAgain
+                  ? (bkg_statusMessage.textContent =
+                      "Lawan menantangmu! Klik 'Main Lagi'.")
+                  : (bkg_statusMessage.textContent =
+                      "Klik 'Main Lagi' untuk rematch!")),
+              p1.wantsToPlayAgain &&
+                p2.wantsToPlayAgain &&
+                "player1" === bkg_playerNumber &&
+                resetForNewRound();
+          } else {
+            bkg_choices.classList.remove("hidden"),
+              bkg_playAgainBtn.classList.add("hidden-view"),
+              (bkg_resultMessage.textContent = "");
+            let secondsLeft = 30;
+            (bkg_statusMessage.textContent = `Pilih jagoanmu! Waktu: ${secondsLeft}s`),
+              (countdownInterval = setInterval(() => {
+                secondsLeft--,
+                  (bkg_statusMessage.textContent = `Pilih jagoanmu! Waktu: ${secondsLeft}s`),
+                  secondsLeft <= 0 && clearInterval(countdownInterval);
+              }, 1e3)),
+              (afkTimeout = setTimeout(() => handleAfkTimeout(p1, p2), 3e4));
+          }
+        } else
+          (bkg_statusMessage.textContent =
+            "Bagikan kode untuk mengundang temanmu!"),
+            bkg_choices.classList.add("hidden"),
+            bkg_playAgainBtn.classList.add("hidden-view"),
+            (bkg_resultMessage.textContent = "");
+      }
+
+      // ... (sisa fungsi tidak ada perubahan fundamental)
+      async function handleAfkTimeout(p1, p2) {
+        const gameRef = doc(bkg_gamesCollection, bkg_currentRoomId),
+          updates = {};
+        let winnerMessage = "Waktu habis! ";
+        p1.choice || p2.choice
+          ? p1.choice
+            ? p2.choice ||
+              ((updates["players.player2.choice"] = "none"),
+              (winnerMessage += `${p2.name} tidak memilih, ${p1.name} menang!`))
+            : ((updates["players.player1.choice"] = "none"),
+              (winnerMessage += `${p1.name} tidak memilih, ${p2.name} menang!`))
+          : ((updates["players.player1.choice"] = "rock"),
+            (updates["players.player2.choice"] = "rock"),
+            (winnerMessage += "Tidak ada yang memilih, hasilnya Seri!")),
+          bkg_showToast(winnerMessage, "info"),
+          await updateDoc(gameRef, updates);
+      }
+      const determineWinner = (c1, c2) =>
+        c1 === "none"
+          ? "player2"
+          : c2 === "none"
+          ? "player1"
+          : c1 === c2
+          ? "draw"
+          : ("rock" === c1 && "scissors" === c2) ||
+            ("paper" === c1 && "rock" === c2) ||
+            ("scissors" === c1 && "paper" === c2)
+          ? "player1"
+          : "player2";
+      document
+        .getElementById("rock")
+        .addEventListener("click", () => bkg_handlePlayerChoice("rock"));
+      document
+        .getElementById("paper")
+        .addEventListener("click", () => bkg_handlePlayerChoice("paper"));
+      document
+        .getElementById("scissors")
+        .addEventListener("click", () => bkg_handlePlayerChoice("scissors"));
+      const bkg_handlePlayerChoice = async (choice) => {
+        if (!bkg_playerNumber || !bkg_currentRoomId) return;
+        const gameRef = doc(bkg_gamesCollection, bkg_currentRoomId),
+          fieldToUpdate = `players.${bkg_playerNumber}.choice`;
+        await updateDoc(gameRef, { [fieldToUpdate]: choice });
+      };
+      bkg_playAgainBtn.addEventListener("click", async () => {
+        if (!bkg_currentRoomId || !bkg_playerNumber) return;
+        const gameRef = doc(bkg_gamesCollection, bkg_currentRoomId),
+          fieldToUpdate = `players.${bkg_playerNumber}.wantsToPlayAgain`;
+        await updateDoc(gameRef, { [fieldToUpdate]: !0 });
+      });
+      async function resetForNewRound() {
+        if (!bkg_currentRoomId) return;
+        const gameRef = doc(bkg_gamesCollection, bkg_currentRoomId);
+        await updateDoc(gameRef, {
+          "players.player1.choice": null,
+          "players.player2.choice": null,
+          "players.player1.wantsToPlayAgain": !1,
+          "players.player1.status": "online",
+          "players.player2.wantsToPlayAgain": !1,
+          "players.player2.status": "online",
+        });
+      }
+      onAuthStateChanged(bkg_auth, (user) => {
+        user && (bkg_currentUserId = user.uid);
+      });
+      signInAnonymously(bkg_auth).catch((err) =>
+        console.error("BKG Auth Error:", err)
+      );
+    </script>
+  </body>
+</html>
