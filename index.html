@@ -417,7 +417,6 @@
     </div>
 
     <script type="module">
-      // Firebase Imports
       import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
       import {
         getAuth,
@@ -434,7 +433,6 @@
         collection,
         deleteDoc,
       } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-      // PERUBAHAN: Menambahkan import untuk Realtime Database (RTDB)
       import {
         getDatabase,
         ref,
@@ -445,18 +443,15 @@
       } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 
       // --- GLOBAL APP SWITCHER LOGIC ---
-      // ... (tidak ada perubahan di sini)
       const mainTabGenerator = document.getElementById("mainTabGenerator");
       const mainTabBKG = document.getElementById("mainTabBKG");
       const generatorApp = document.getElementById("generatorApp");
       const bkgApp = document.getElementById("bkgApp");
-
       function switchMainApp(appId) {
         generatorApp.classList.remove("active");
         bkgApp.classList.remove("active");
         mainTabGenerator.classList.remove("active");
         mainTabBKG.classList.remove("active");
-
         if (appId === "generator") {
           generatorApp.classList.add("active");
           mainTabGenerator.classList.add("active");
@@ -472,7 +467,6 @@
       switchMainApp("bkg");
 
       // --- GENERATOR APP LOGIC ---
-      // ... (tidak ada perubahan di sini)
       const generatorType = document.getElementById("generatorType"),
         inputText = document.getElementById("inputText"),
         outputText = document.getElementById("outputText"),
@@ -619,19 +613,16 @@
         storageBucket: "realtime-database-99f23.appspot.com",
         messagingSenderId: "642043922874",
         appId: "1:642043922874:web:6222047848a815392cf583",
-        // PERUBAHAN: Tambahkan databaseURL untuk RTDB
         databaseURL:
-          "https://realtime-database-99f23-default-rtdb.asia-southeast1.firebasedatabase.app",
+          "https://realtime-database-99f23-default-rtdb.firebaseio.com/",
       };
 
       const bkg_app = initializeApp(bkg_firebaseConfig, "BKG_APP");
       const bkg_auth = getAuth(bkg_app);
       const bkg_db = getFirestore(bkg_app);
-      // PERUBAHAN: Inisialisasi Realtime Database
       const bkg_rtdb = getDatabase(bkg_app);
       const bkg_gamesCollection = collection(bkg_db, "rps-rooms");
 
-      // ... (DOM Elements tidak berubah)
       const bkg_lobbyView = document.getElementById("lobby-view"),
         bkg_gameView = document.getElementById("game-view"),
         bkg_playerNameInput = document.getElementById("player-name-input"),
@@ -657,13 +648,11 @@
         bkg_currentRoomId = null,
         bkg_playerNumber = null,
         bkg_unsubscribeGame = null;
-      // PERUBAHAN: Menambahkan variabel untuk listener status RTDB
       let bkg_toastTimeout,
         afkTimeout = null,
         countdownInterval = null,
-        rtdbListener = null;
+        rtdbListenerUnsubscribe = null;
 
-      // ... (fungsi bkg_showToast, bkg_switchView, bkg_resetGameState tidak berubah signifikan)
       const bkg_showToast = (message, type = "info") => {
         clearTimeout(bkg_toastTimeout),
           (bkg_toast.textContent = message),
@@ -681,7 +670,7 @@
           bkg_gameView.classList.add("hidden-view"),
             bkg_lobbyView.classList.remove("hidden-view"),
             bkg_unsubscribeGame && bkg_unsubscribeGame(),
-            rtdbListener && rtdbListener(),
+            rtdbListenerUnsubscribe && rtdbListenerUnsubscribe(),
             bkg_resetGameState();
         }
       };
@@ -689,14 +678,13 @@
         (bkg_currentRoomId = null),
           (bkg_playerNumber = null),
           (bkg_unsubscribeGame = null),
-          (rtdbListener = null),
+          (rtdbListenerUnsubscribe = null),
           (bkg_lobbyError.textContent = ""),
           (bkg_roomCodeInput.value = ""),
           clearTimeout(afkTimeout),
           clearInterval(countdownInterval);
       };
 
-      // ... (fungsi lobby seperti create dan join room tidak berubah signifikan)
       bkg_createRoomBtn.addEventListener("click", async () => {
         const name = bkg_playerNameInput.value.trim();
         if (!name)
@@ -752,13 +740,11 @@
           : (bkg_lobbyError.textContent = "Room tidak ditemukan.");
       });
 
-      // PERUBAHAN: Fungsi join room sekarang mengatur status kehadiran di RTDB
       const bkg_joinRoom = (roomId) => {
         bkg_currentRoomId = roomId;
         bkg_switchView("game");
         bkg_roomCodeDisplay.textContent = roomId;
 
-        // Set up presence in RTDB
         const userStatusRef = ref(
           bkg_rtdb,
           `/status/${roomId}/${bkg_currentUserId}`
@@ -769,15 +755,13 @@
         bkg_listenToGameUpdates(roomId);
       };
 
-      // PERUBAHAN: Tombol keluar juga membersihkan status di RTDB
       bkg_leaveRoomBtn.addEventListener("click", async () => {
         if (!bkg_currentRoomId || !bkg_playerNumber) return;
-
         const userStatusRef = ref(
           bkg_rtdb,
           `/status/${bkg_currentRoomId}/${bkg_currentUserId}`
         );
-        remove(userStatusRef); // Hapus status online secara manual
+        remove(userStatusRef);
 
         const gameRef = doc(bkg_gamesCollection, bkg_currentRoomId);
         if (bkg_playerNumber === "player1") {
@@ -794,7 +778,6 @@
           .then(() => bkg_showToast("Kode room disalin!", "success"));
       });
 
-      // PERUBAHAN: Fungsi listener utama sekarang juga memantau status online dari RTDB
       function bkg_listenToGameUpdates(roomId) {
         const gameRef = doc(bkg_gamesCollection, roomId);
         bkg_unsubscribeGame = onSnapshot(gameRef, (docSnap) => {
@@ -806,39 +789,33 @@
             return;
           }
           const gameState = docSnap.data();
-
-          // Pantau status online dari RTDB
-          const roomStatusRef = ref(bkg_rtdb, `/status/${roomId}`);
-          rtdbListener = onValue(roomStatusRef, (statusSnap) => {
-            const onlineUsers = statusSnap.val() || {};
-            handleDisconnects(gameState, onlineUsers);
-          });
-
           bkg_updateUI(gameState);
+        });
+
+        const roomStatusRef = ref(bkg_rtdb, `/status/${roomId}`);
+        rtdbListenerUnsubscribe = onValue(roomStatusRef, (statusSnap) => {
+          const onlineUsers = statusSnap.val() || {};
+          handleDisconnects(onlineUsers);
         });
       }
 
-      // PERUBAHAN: Fungsi baru untuk menangani jika ada pemain disconnect
-      async function handleDisconnects(gameState, onlineUsers) {
-        const { players } = gameState;
+      async function handleDisconnects(onlineUsers) {
+        const gameRef = doc(bkg_db, "rps-rooms", bkg_currentRoomId);
+        const gameSnap = await getDoc(gameRef);
+        if (!gameSnap.exists()) return;
+
+        const { players } = gameSnap.data();
         const p1 = players.player1;
         const p2 = players.player2;
 
         if (p1 && !onlineUsers[p1.uid] && p1.status === "online") {
-          // Player 1 disconnect
-          await updateDoc(doc(bkg_db, "rps-rooms", bkg_currentRoomId), {
-            "players.player1.status": "offline",
-          });
+          await updateDoc(gameRef, { "players.player1.status": "offline" });
         }
         if (p2 && !onlineUsers[p2.uid] && p2.status === "online") {
-          // Player 2 disconnect
-          await updateDoc(doc(bkg_db, "rps-rooms", bkg_currentRoomId), {
-            "players.player2.status": "offline",
-          });
+          await updateDoc(gameRef, { "players.player2.status": "offline" });
         }
       }
 
-      // PERUBAHAN: UI sekarang merespons status 'offline'
       function bkg_updateUI(gameState) {
         const { players } = gameState,
           p1 = players.player1,
@@ -848,20 +825,21 @@
           : p2?.uid === bkg_currentUserId && (bkg_playerNumber = "player2");
         if (!bkg_playerNumber || !players[bkg_playerNumber]) return;
 
-        // Cek status disconnect lawan
         const opponentPlayerNumber =
           bkg_playerNumber === "player1" ? "player2" : "player1";
         const opponent = players[opponentPlayerNumber];
-        if (opponent && opponent.status === "offline") {
+        if (opponent && "offline" === opponent.status) {
           bkg_statusMessage.textContent = "Lawan telah keluar dari permainan.";
           bkg_choices.classList.add("hidden");
           bkg_playAgainBtn.classList.add("hidden-view");
           bkg_resultMessage.textContent = "";
-          return; // Hentikan update UI lebih lanjut
+          clearTimeout(afkTimeout);
+          clearInterval(countdownInterval);
+          return;
         }
 
-        bkg_player1NameEl.textContent = p1?.name || "Pemain 1";
-        bkg_player2NameEl.textContent = p2?.name || "Menunggu...";
+        (bkg_player1NameEl.textContent = p1?.name || "Pemain 1"),
+          (bkg_player2NameEl.textContent = p2?.name || "Menunggu...");
         const choiceMap = { rock: "✊", paper: "✋", scissors: "✌" };
         const displayChoice = (player, element, isOpponent) => {
           if (player?.choice) {
@@ -878,64 +856,60 @@
           p1,
           bkg_player1ChoiceText,
           "player1" !== bkg_playerNumber
-        );
-        displayChoice(
-          p2,
-          bkg_player2ChoiceText,
-          "player2" !== bkg_playerNumber
-        );
-        clearTimeout(afkTimeout);
-        clearInterval(countdownInterval);
-        if (p2) {
-          if (p1.choice && p2.choice) {
-            bkg_choices.classList.add("hidden"),
-              bkg_playAgainBtn.classList.remove("hidden-view");
-            const winner = determineWinner(p1.choice, p2.choice);
-            "draw" === winner
-              ? (bkg_resultMessage.textContent = "Hasilnya Seri!")
-              : winner === bkg_playerNumber
-              ? (bkg_resultMessage.textContent = "Kamu Menang! 🎉")
-              : (bkg_resultMessage.textContent = "Kamu Kalah! 😞");
-            const me = players[bkg_playerNumber],
-              opponent = players[opponentPlayerNumber];
-            me.wantsToPlayAgain
-              ? ((bkg_playAgainBtn.textContent = "Menunggu Lawan..."),
-                (bkg_playAgainBtn.disabled = !0),
-                (bkg_statusMessage.textContent =
-                  "Menunggu persetujuan lawan..."))
-              : ((bkg_playAgainBtn.textContent = "Main Lagi"),
-                (bkg_playAgainBtn.disabled = !1),
-                opponent && opponent.wantsToPlayAgain
-                  ? (bkg_statusMessage.textContent =
-                      "Lawan menantangmu! Klik 'Main Lagi'.")
-                  : (bkg_statusMessage.textContent =
-                      "Klik 'Main Lagi' untuk rematch!")),
-              p1.wantsToPlayAgain &&
-                p2.wantsToPlayAgain &&
-                "player1" === bkg_playerNumber &&
-                resetForNewRound();
-          } else {
-            bkg_choices.classList.remove("hidden"),
+        ),
+          displayChoice(
+            p2,
+            bkg_player2ChoiceText,
+            "player2" !== bkg_playerNumber
+          ),
+          clearTimeout(afkTimeout),
+          clearInterval(countdownInterval),
+          p2
+            ? p1.choice && p2.choice
+              ? (bkg_choices.classList.add("hidden"),
+                bkg_playAgainBtn.classList.remove("hidden-view"),
+                "draw" === (e = determineWinner(p1.choice, p2.choice))
+                  ? (bkg_resultMessage.textContent = "Hasilnya Seri!")
+                  : e === bkg_playerNumber
+                  ? (bkg_resultMessage.textContent = "Kamu Menang! 🎉")
+                  : (bkg_resultMessage.textContent = "Kamu Kalah! 😞"),
+                (t = players[bkg_playerNumber]),
+                (a = players[opponentPlayerNumber]),
+                t.wantsToPlayAgain
+                  ? ((bkg_playAgainBtn.textContent = "Menunggu Lawan..."),
+                    (bkg_playAgainBtn.disabled = !0),
+                    (bkg_statusMessage.textContent =
+                      "Menunggu persetujuan lawan..."))
+                  : ((bkg_playAgainBtn.textContent = "Main Lagi"),
+                    (bkg_playAgainBtn.disabled = !1),
+                    a && a.wantsToPlayAgain
+                      ? (bkg_statusMessage.textContent =
+                          "Lawan menantangmu! Klik 'Main Lagi'.")
+                      : (bkg_statusMessage.textContent =
+                          "Klik 'Main Lagi' untuk rematch!")),
+                p1.wantsToPlayAgain &&
+                  p2.wantsToPlayAgain &&
+                  "player1" === bkg_playerNumber &&
+                  resetForNewRound())
+              : (bkg_choices.classList.remove("hidden"),
+                bkg_playAgainBtn.classList.add("hidden-view"),
+                (bkg_resultMessage.textContent = ""),
+                (e = 30),
+                (bkg_statusMessage.textContent = `Pilih jagoanmu! Waktu: ${e}s`),
+                (countdownInterval = setInterval(() => {
+                  e--,
+                    (bkg_statusMessage.textContent = `Pilih jagoanmu! Waktu: ${e}s`),
+                    e <= 0 && clearInterval(countdownInterval);
+                }, 1e3)),
+                (afkTimeout = setTimeout(() => handleAfkTimeout(p1, p2), 3e4)))
+            : ((bkg_statusMessage.textContent =
+                "Bagikan kode untuk mengundang temanmu!"),
+              bkg_choices.classList.add("hidden"),
               bkg_playAgainBtn.classList.add("hidden-view"),
-              (bkg_resultMessage.textContent = "");
-            let secondsLeft = 30;
-            (bkg_statusMessage.textContent = `Pilih jagoanmu! Waktu: ${secondsLeft}s`),
-              (countdownInterval = setInterval(() => {
-                secondsLeft--,
-                  (bkg_statusMessage.textContent = `Pilih jagoanmu! Waktu: ${secondsLeft}s`),
-                  secondsLeft <= 0 && clearInterval(countdownInterval);
-              }, 1e3)),
-              (afkTimeout = setTimeout(() => handleAfkTimeout(p1, p2), 3e4));
-          }
-        } else
-          (bkg_statusMessage.textContent =
-            "Bagikan kode untuk mengundang temanmu!"),
-            bkg_choices.classList.add("hidden"),
-            bkg_playAgainBtn.classList.add("hidden-view"),
-            (bkg_resultMessage.textContent = "");
+              (bkg_resultMessage.textContent = ""));
+        var e, t, a;
       }
 
-      // ... (sisa fungsi tidak ada perubahan fundamental)
       async function handleAfkTimeout(p1, p2) {
         const gameRef = doc(bkg_gamesCollection, bkg_currentRoomId),
           updates = {};
@@ -986,6 +960,7 @@
           fieldToUpdate = `players.${bkg_playerNumber}.wantsToPlayAgain`;
         await updateDoc(gameRef, { [fieldToUpdate]: !0 });
       });
+
       async function resetForNewRound() {
         if (!bkg_currentRoomId) return;
         const gameRef = doc(bkg_gamesCollection, bkg_currentRoomId);
@@ -998,6 +973,7 @@
           "players.player2.status": "online",
         });
       }
+
       onAuthStateChanged(bkg_auth, (user) => {
         user && (bkg_currentUserId = user.uid);
       });
