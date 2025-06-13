@@ -126,6 +126,12 @@
       .toast-info {
         background-color: #2563eb;
       }
+      #chat-messages {
+        scroll-behavior: smooth;
+      }
+      #chat-messages p {
+        max-width: 85%;
+      }
     </style>
   </head>
   <body class="min-h-screen p-4 flex flex-col items-center">
@@ -412,6 +418,28 @@
             id="play-again-btn"
             class="hidden-view btn btn-primary font-bold py-3 px-8 rounded-lg text-xl"
           ></button>
+
+          <div id="chat-container" class="mt-8 border-t-2 border-gray-700 pt-4">
+            <h3 class="text-lg font-semibold mb-2 text-center">Chat Room</h3>
+            <div
+              id="chat-messages"
+              class="h-40 bg-gray-900 rounded-lg p-3 overflow-y-auto flex flex-col gap-2"
+            ></div>
+            <div class="mt-3 flex gap-2">
+              <input
+                type="text"
+                id="chat-input"
+                class="flex-grow bg-gray-700 text-white p-2 rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="Ketik pesan..."
+              />
+              <button
+                id="chat-send-btn"
+                class="btn btn-primary px-4 py-2 rounded-lg"
+              >
+                Kirim
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -432,6 +460,10 @@
         getDoc,
         collection,
         deleteDoc,
+        addDoc,
+        serverTimestamp,
+        query,
+        orderBy,
       } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
       import {
         getDatabase,
@@ -624,6 +656,9 @@
       const bkg_rtdb = getDatabase(bkg_app);
       const bkg_gamesCollection = collection(bkg_db, "rps-rooms");
 
+      // PERUBAHAN: Menambah elemen kartu pemain
+      const bkg_player1Card = document.getElementById("p1-card");
+      const bkg_player2Card = document.getElementById("p2-card");
       const bkg_lobbyView = document.getElementById("lobby-view"),
         bkg_gameView = document.getElementById("game-view"),
         bkg_playerNameInput = document.getElementById("player-name-input"),
@@ -643,7 +678,9 @@
         bkg_choices = document.getElementById("choices"),
         bkg_playAgainBtn = document.getElementById("play-again-btn"),
         bkg_toast = document.getElementById("toast-notification");
-
+      const chatMessages = document.getElementById("chat-messages"),
+        chatInput = document.getElementById("chat-input"),
+        chatSendBtn = document.getElementById("chat-send-btn");
       let bkg_currentUserId = null,
         bkg_currentPlayerName = "",
         bkg_currentRoomId = null,
@@ -652,7 +689,8 @@
       let bkg_toastTimeout,
         afkTimeout = null,
         countdownInterval = null,
-        rtdbListenerUnsubscribe = null;
+        rtdbListenerUnsubscribe = null,
+        chatUnsubscribe = null;
 
       const bkg_showToast = (message, type = "info") => {
         clearTimeout(bkg_toastTimeout),
@@ -663,22 +701,20 @@
             bkg_toast.classList.remove("show");
           }, 4e3));
       };
-
-      // PERUBAHAN: Fungsi clear session
       const clearSession = () => {
-        sessionStorage.removeItem("bkg_roomId");
-        sessionStorage.removeItem("bkg_userId");
+        sessionStorage.removeItem("bkg_roomId"),
+          sessionStorage.removeItem("bkg_userId");
       };
-
-      const bkg_switchView = (view) => {
-        if (view === "game") {
+      const bkg_switchView = (e) => {
+        if ("game" === e)
           bkg_lobbyView.classList.add("hidden-view"),
             bkg_gameView.classList.remove("hidden-view");
-        } else {
+        else {
           bkg_gameView.classList.add("hidden-view"),
             bkg_lobbyView.classList.remove("hidden-view"),
             bkg_unsubscribeGame && bkg_unsubscribeGame(),
             rtdbListenerUnsubscribe && rtdbListenerUnsubscribe(),
+            chatUnsubscribe && chatUnsubscribe(),
             clearSession(),
             bkg_resetGameState();
         }
@@ -688,22 +724,22 @@
           (bkg_playerNumber = null),
           (bkg_unsubscribeGame = null),
           (rtdbListenerUnsubscribe = null),
+          (chatUnsubscribe = null),
           (bkg_lobbyError.textContent = ""),
           (bkg_roomCodeInput.value = ""),
           clearTimeout(afkTimeout),
           clearInterval(countdownInterval);
       };
-
       bkg_createRoomBtn.addEventListener("click", async () => {
-        const name = bkg_playerNameInput.value.trim();
-        if (!name)
+        const e = bkg_playerNameInput.value.trim();
+        if (!e)
           return (
             (bkg_lobbyError.textContent = "Nama tidak boleh kosong."), void 0
           );
-        bkg_currentPlayerName = name;
-        const roomId = Math.random().toString(36).substring(2, 7).toUpperCase();
-        const gameRef = doc(bkg_gamesCollection, roomId);
-        await setDoc(gameRef, {
+        bkg_currentPlayerName = e;
+        const t = Math.random().toString(36).substring(2, 7).toUpperCase(),
+          a = doc(bkg_gamesCollection, t);
+        await setDoc(a, {
           players: {
             player1: {
               uid: bkg_currentUserId,
@@ -716,27 +752,27 @@
           },
           createdAt: new Date(),
         }),
-          bkg_joinRoom(roomId);
+          bkg_joinRoom(t);
       });
       bkg_joinRoomBtn.addEventListener("click", async () => {
-        const name = bkg_playerNameInput.value.trim();
-        if (!name)
+        const e = bkg_playerNameInput.value.trim();
+        if (!e)
           return (
             (bkg_lobbyError.textContent = "Nama tidak boleh kosong."), void 0
           );
-        bkg_currentPlayerName = name;
-        const roomId = bkg_roomCodeInput.value.trim().toUpperCase();
-        if (!roomId)
+        bkg_currentPlayerName = e;
+        const t = bkg_roomCodeInput.value.trim().toUpperCase();
+        if (!t)
           return (
             (bkg_lobbyError.textContent = "Kode room tidak boleh kosong."),
             void 0
           );
-        const gameRef = doc(bkg_gamesCollection, roomId),
-          docSnap = await getDoc(gameRef);
-        docSnap.exists()
-          ? docSnap.data().players.player2
+        const a = doc(bkg_gamesCollection, t),
+          o = await getDoc(a);
+        o.exists()
+          ? o.data().players.player2
             ? (bkg_lobbyError.textContent = "Room ini sudah penuh.")
-            : (await updateDoc(gameRef, {
+            : (await updateDoc(a, {
                 "players.player2": {
                   uid: bkg_currentUserId,
                   name: bkg_currentPlayerName,
@@ -745,91 +781,119 @@
                   status: "online",
                 },
               }),
-              bkg_joinRoom(roomId))
+              bkg_joinRoom(t))
           : (bkg_lobbyError.textContent = "Room tidak ditemukan.");
       });
-
-      const bkg_joinRoom = (roomId) => {
-        bkg_currentRoomId = roomId;
-        bkg_switchView("game");
-        bkg_roomCodeDisplay.textContent = roomId;
-
-        const userStatusRef = ref(
-          bkg_rtdb,
-          `/status/${roomId}/${bkg_currentUserId}`
-        );
-        onDisconnect(userStatusRef).remove();
-        set(userStatusRef, true);
-
-        // PERUBAHAN: Simpan sesi ke sessionStorage
-        sessionStorage.setItem("bkg_roomId", roomId);
-        sessionStorage.setItem("bkg_userId", bkg_currentUserId);
-
-        bkg_listenToGameUpdates(roomId);
+      const bkg_joinRoom = (e) => {
+        (bkg_currentRoomId = e),
+          bkg_switchView("game"),
+          (bkg_roomCodeDisplay.textContent = e);
+        const t = ref(bkg_rtdb, `/status/${e}/${bkg_currentUserId}`);
+        onDisconnect(t).remove(),
+          set(t, !0),
+          sessionStorage.setItem("bkg_roomId", e),
+          sessionStorage.setItem("bkg_userId", bkg_currentUserId),
+          bkg_listenToGameUpdates(e);
       };
-
       bkg_leaveRoomBtn.addEventListener("click", async () => {
         if (!bkg_currentRoomId || !bkg_playerNumber) return;
-        const userStatusRef = ref(
+        const e = ref(
           bkg_rtdb,
           `/status/${bkg_currentRoomId}/${bkg_currentUserId}`
         );
-        remove(userStatusRef);
-
-        const gameRef = doc(bkg_gamesCollection, bkg_currentRoomId);
-        if (bkg_playerNumber === "player1") {
-          await deleteDoc(gameRef);
-        } else {
-          await updateDoc(gameRef, { "players.player2": null });
-        }
-
-        bkg_switchView("lobby"); // switchView akan membersihkan session
+        remove(e);
+        const t = doc(bkg_gamesCollection, bkg_currentRoomId);
+        "player1" === bkg_playerNumber
+          ? await deleteDoc(t)
+          : await updateDoc(t, { "players.player2": null }),
+          bkg_switchView("lobby");
       });
-
-      bkg_copyCodeBtn.addEventListener("click", () => {
+      bkg_copyCodeBtn.addEventListener("click", () =>
         navigator.clipboard
           .writeText(bkg_currentRoomId)
-          .then(() => bkg_showToast("Kode room disalin!", "success"));
-      });
-
-      function bkg_listenToGameUpdates(roomId) {
-        const gameRef = doc(bkg_gamesCollection, roomId);
-        bkg_unsubscribeGame = onSnapshot(gameRef, (docSnap) => {
-          if (!docSnap.exists()) {
-            if ("player2" === bkg_playerNumber) {
-              bkg_showToast("Room ditutup oleh host.", "error");
-              setTimeout(() => bkg_switchView("lobby"), 3e3);
-            }
-            return;
-          }
-          const gameState = docSnap.data();
-          bkg_updateUI(gameState);
+          .then(() => bkg_showToast("Kode room disalin!", "success"))
+      );
+      function bkg_listenToGameUpdates(e) {
+        const t = doc(bkg_gamesCollection, e);
+        bkg_unsubscribeGame = onSnapshot(t, (e) => {
+          if (e.exists()) {
+            const t = e.data();
+            bkg_updateUI(t);
+          } else
+            "player2" === bkg_playerNumber &&
+              (bkg_showToast("Room ditutup oleh host.", "error"),
+              setTimeout(() => bkg_switchView("lobby"), 3e3));
         });
-
-        const roomStatusRef = ref(bkg_rtdb, `/status/${roomId}`);
-        rtdbListenerUnsubscribe = onValue(roomStatusRef, (statusSnap) => {
-          const onlineUsers = statusSnap.val() || {};
-          handleDisconnects(onlineUsers);
+        const a = ref(bkg_rtdb, `/status/${e}`);
+        rtdbListenerUnsubscribe = onValue(a, (e) => {
+          const t = e.val() || {};
+          handleDisconnects(t);
+        });
+        const o = collection(bkg_db, "rps-rooms", e, "messages"),
+          n = query(o, orderBy("timestamp", "asc"));
+        chatUnsubscribe = onSnapshot(n, (e) => {
+          (chatMessages.innerHTML = ""),
+            e.forEach((e) => {
+              const t = e.data(),
+                a = document.createElement("p"),
+                o = t.senderId === bkg_currentUserId;
+              (a.innerHTML = `<span class="font-bold ${
+                o ? "text-indigo-400" : "text-green-400"
+              }">${t.senderName}:</span> ${t.text}`),
+                (a.className = `w-full break-words p-2 rounded-lg ${
+                  o
+                    ? "bg-indigo-900/50 self-end text-right"
+                    : "bg-gray-700/50 self-start text-left"
+                }`),
+                chatMessages.appendChild(a);
+            }),
+            (chatMessages.scrollTop = chatMessages.scrollHeight);
         });
       }
-
-      async function handleDisconnects(onlineUsers) {
-        const gameRef = doc(bkg_db, "rps-rooms", bkg_currentRoomId);
-        const gameSnap = await getDoc(gameRef);
-        if (!gameSnap.exists()) return;
-
-        const { players } = gameSnap.data();
-        const p1 = players.player1;
-        const p2 = players.player2;
-
-        if (p1 && !onlineUsers[p1.uid] && p1.status === "online") {
-          await updateDoc(gameRef, { "players.player1.status": "offline" });
+      const sendMessage = async () => {
+        const e = chatInput.value.trim();
+        if ("" === e || !bkg_currentRoomId) return;
+        const t = collection(
+          bkg_db,
+          "rps-rooms",
+          bkg_currentRoomId,
+          "messages"
+        );
+        try {
+          await addDoc(t, {
+            text: e,
+            senderId: bkg_currentUserId,
+            senderName: bkg_currentPlayerName,
+            timestamp: serverTimestamp(),
+          }),
+            (chatInput.value = "");
+        } catch (e) {
+          console.error("Gagal mengirim pesan:", e),
+            bkg_showToast("Gagal mengirim pesan.", "error");
         }
-        if (p2 && !onlineUsers[p2.uid] && p2.status === "online") {
-          await updateDoc(gameRef, { "players.player2.status": "offline" });
-        }
+      };
+      chatSendBtn.addEventListener("click", sendMessage),
+        chatInput.addEventListener("keydown", (e) => {
+          "Enter" === e.key && sendMessage();
+        });
+      async function handleDisconnects(e) {
+        const t = doc(bkg_db, "rps-rooms", bkg_currentRoomId),
+          a = await getDoc(t);
+        if (!a.exists()) return;
+        const { players: o } = a.data(),
+          n = o.player1,
+          r = o.player2;
+        n &&
+          !e[n.uid] &&
+          "online" === n.status &&
+          (await updateDoc(t, { "players.player1.status": "offline" })),
+          r &&
+            !e[r.uid] &&
+            "online" === r.status &&
+            (await updateDoc(t, { "players.player2.status": "offline" }));
       }
 
+      // PERUBAHAN: Menambahkan logika untuk highlight kartu pemain
       function bkg_updateUI(gameState) {
         const { players } = gameState,
           p1 = players.player1,
@@ -839,19 +903,32 @@
           : p2?.uid === bkg_currentUserId && (bkg_playerNumber = "player2");
         if (!bkg_playerNumber || !players[bkg_playerNumber]) return;
 
-        const opponentPlayerNumber =
-          bkg_playerNumber === "player1" ? "player2" : "player1";
-        const opponent = players[opponentPlayerNumber];
-        if (opponent && "offline" === opponent.status) {
-          bkg_statusMessage.textContent = "Lawan telah keluar dari permainan.";
-          bkg_choices.classList.add("hidden");
-          bkg_playAgainBtn.classList.add("hidden-view");
-          bkg_resultMessage.textContent = "";
-          clearTimeout(afkTimeout);
-          clearInterval(countdownInterval);
-          return;
+        bkg_player1Card.classList.remove("border-indigo-500");
+        bkg_player2Card.classList.remove("border-indigo-500");
+        bkg_player1Card.classList.add("border-transparent");
+        bkg_player2Card.classList.add("border-transparent");
+
+        if (bkg_playerNumber === "player1") {
+          bkg_player1Card.classList.add("border-indigo-500");
+          bkg_player1Card.classList.remove("border-transparent");
+        } else if (bkg_playerNumber === "player2") {
+          bkg_player2Card.classList.add("border-indigo-500");
+          bkg_player2Card.classList.remove("border-transparent");
         }
 
+        const opponentPlayerNumber =
+          "player1" === bkg_playerNumber ? "player2" : "player1";
+        const opponent = players[opponentPlayerNumber];
+        if (opponent && "offline" === opponent.status)
+          return (
+            (bkg_statusMessage.textContent =
+              "Lawan telah keluar dari permainan."),
+            bkg_choices.classList.add("hidden"),
+            bkg_playAgainBtn.classList.add("hidden-view"),
+            (bkg_resultMessage.textContent = ""),
+            clearTimeout(afkTimeout),
+            void clearInterval(countdownInterval)
+          );
         (bkg_player1NameEl.textContent = p1?.name || "Pemain 1"),
           (bkg_player2NameEl.textContent = p2?.name || "Menunggu...");
         const choiceMap = { rock: "✊", paper: "✋", scissors: "✌" };
@@ -969,12 +1046,11 @@
         await updateDoc(gameRef, { [fieldToUpdate]: choice });
       };
       bkg_playAgainBtn.addEventListener("click", async () => {
-        if (!bkg_currentRoomId || !bkg_playerNumber) return;
+        if (!bkg_playerNumber || !bkg_currentRoomId) return;
         const gameRef = doc(bkg_gamesCollection, bkg_currentRoomId),
           fieldToUpdate = `players.${bkg_playerNumber}.wantsToPlayAgain`;
         await updateDoc(gameRef, { [fieldToUpdate]: !0 });
       });
-
       async function resetForNewRound() {
         if (!bkg_currentRoomId) return;
         const gameRef = doc(bkg_gamesCollection, bkg_currentRoomId);
@@ -987,43 +1063,25 @@
           "players.player2.status": "online",
         });
       }
-
-      // --- PERUBAHAN: Fungsi untuk memeriksa sesi saat halaman dimuat ---
       async function checkForSavedSession() {
-        const savedRoomId = sessionStorage.getItem("bkg_roomId");
-        const savedUserId = sessionStorage.getItem("bkg_userId");
-
-        if (savedRoomId && savedUserId && savedUserId === bkg_currentUserId) {
-          const gameRef = doc(bkg_gamesCollection, savedRoomId);
-          const docSnap = await getDoc(gameRef);
-
-          if (docSnap.exists()) {
-            // Room masih ada, coba masuk kembali
-            const players = docSnap.data().players;
-            const myPlayerData =
-              players.player1?.uid === savedUserId
-                ? players.player1
-                : players.player2;
-            if (myPlayerData) {
-              bkg_currentPlayerName = myPlayerData.name;
-              bkg_joinRoom(savedRoomId);
-              bkg_showToast("Berhasil terhubung kembali ke room!", "success");
-            }
-          } else {
-            // Room sudah tidak ada, hapus sesi
-            clearSession();
-          }
+        const e = sessionStorage.getItem("bkg_roomId"),
+          t = sessionStorage.getItem("bkg_userId");
+        if (e && t && t === bkg_currentUserId) {
+          const a = doc(bkg_gamesCollection, e),
+            o = await getDoc(a);
+          if (o.exists()) {
+            const n = o.data().players,
+              r = n.player1?.uid === t ? n.player1 : n.player2;
+            r &&
+              ((bkg_currentPlayerName = r.name),
+              bkg_joinRoom(e),
+              bkg_showToast("Berhasil terhubung kembali ke room!", "success"));
+          } else clearSession();
         }
       }
-
       onAuthStateChanged(bkg_auth, (user) => {
-        if (user) {
-          bkg_currentUserId = user.uid;
-          // PERUBAHAN: Coba masuk kembali ke sesi setelah user terautentikasi
-          checkForSavedSession();
-        }
+        user && ((bkg_currentUserId = user.uid), checkForSavedSession());
       });
-
       signInAnonymously(bkg_auth).catch((err) =>
         console.error("BKG Auth Error:", err)
       );
