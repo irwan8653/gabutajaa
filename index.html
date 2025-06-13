@@ -443,28 +443,27 @@
       } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 
       // --- GLOBAL APP SWITCHER LOGIC ---
-      const mainTabGenerator = document.getElementById("mainTabGenerator");
-      const mainTabBKG = document.getElementById("mainTabBKG");
-      const generatorApp = document.getElementById("generatorApp");
-      const bkgApp = document.getElementById("bkgApp");
-      function switchMainApp(appId) {
-        generatorApp.classList.remove("active");
-        bkgApp.classList.remove("active");
-        mainTabGenerator.classList.remove("active");
-        mainTabBKG.classList.remove("active");
-        if (appId === "generator") {
-          generatorApp.classList.add("active");
-          mainTabGenerator.classList.add("active");
-        } else if (appId === "bkg") {
-          bkgApp.classList.add("active");
-          mainTabBKG.classList.add("active");
-        }
+      const mainTabGenerator = document.getElementById("mainTabGenerator"),
+        mainTabBKG = document.getElementById("mainTabBKG"),
+        generatorApp = document.getElementById("generatorApp"),
+        bkgApp = document.getElementById("bkgApp");
+      function switchMainApp(e) {
+        generatorApp.classList.remove("active"),
+          bkgApp.classList.remove("active"),
+          mainTabGenerator.classList.remove("active"),
+          mainTabBKG.classList.remove("active"),
+          "generator" === e
+            ? (generatorApp.classList.add("active"),
+              mainTabGenerator.classList.add("active"))
+            : "bkg" === e &&
+              (bkgApp.classList.add("active"),
+              mainTabBKG.classList.add("active"));
       }
       mainTabGenerator.addEventListener("click", () =>
         switchMainApp("generator")
-      );
-      mainTabBKG.addEventListener("click", () => switchMainApp("bkg"));
-      switchMainApp("bkg");
+      ),
+        mainTabBKG.addEventListener("click", () => switchMainApp("bkg")),
+        switchMainApp("bkg");
 
       // --- GENERATOR APP LOGIC ---
       const generatorType = document.getElementById("generatorType"),
@@ -528,35 +527,37 @@
         garbledFn = (e) =>
           e
             .split("")
-            .map((e) => {
-              if (e >= "a" && e <= "z") return ENCRYPTION_MAP[e];
-              if (e >= "A" && e <= "Z")
-                return ENCRYPTION_MAP[e.toLowerCase()].toUpperCase();
-              return e;
-            })
+            .map((e) =>
+              e >= "a" && e <= "z"
+                ? ENCRYPTION_MAP[e]
+                : e >= "A" && e <= "Z"
+                ? ENCRYPTION_MAP[e.toLowerCase()].toUpperCase()
+                : e
+            )
             .join(""),
         ungarbledFn = (e) =>
           e
             .split("")
-            .map((e) => {
-              if (e >= "a" && e <= "z") return DECRYPTION_MAP[e];
-              if (e >= "A" && e <= "Z")
-                return DECRYPTION_MAP[e.toLowerCase()].toUpperCase();
-              return e;
-            })
+            .map((e) =>
+              e >= "a" && e <= "z"
+                ? DECRYPTION_MAP[e]
+                : e >= "A" && e <= "Z"
+                ? DECRYPTION_MAP[e.toLowerCase()].toUpperCase()
+                : e
+            )
             .join("");
-      const textToMorseFn = (text) =>
-        text
-          .toUpperCase()
-          .split("")
-          .map((c) => MORSE_CODE_MAP[c] || (c === " " ? "/" : ""))
-          .join("   ");
-      const morseToTextFn = (morse) =>
-        morse
-          .trim()
-          .split(/[\s]{2,}/)
-          .map((c) => REVERSE_MORSE_MAP[c] || (c === "/" ? " " : ""))
-          .join("");
+      const textToMorseFn = (e) =>
+          e
+            .toUpperCase()
+            .split("")
+            .map((e) => MORSE_CODE_MAP[e] || (" " === e ? "/" : ""))
+            .join("   "),
+        morseToTextFn = (e) =>
+          e
+            .trim()
+            .split(/[\s]{2,}/)
+            .map((e) => REVERSE_MORSE_MAP[e] || ("/" === e ? " " : ""))
+            .join("");
       function translate() {
         const e = generatorType.value,
           t = inputText.value,
@@ -662,6 +663,13 @@
             bkg_toast.classList.remove("show");
           }, 4e3));
       };
+
+      // PERUBAHAN: Fungsi clear session
+      const clearSession = () => {
+        sessionStorage.removeItem("bkg_roomId");
+        sessionStorage.removeItem("bkg_userId");
+      };
+
       const bkg_switchView = (view) => {
         if (view === "game") {
           bkg_lobbyView.classList.add("hidden-view"),
@@ -671,6 +679,7 @@
             bkg_lobbyView.classList.remove("hidden-view"),
             bkg_unsubscribeGame && bkg_unsubscribeGame(),
             rtdbListenerUnsubscribe && rtdbListenerUnsubscribe(),
+            clearSession(),
             bkg_resetGameState();
         }
       };
@@ -752,6 +761,10 @@
         onDisconnect(userStatusRef).remove();
         set(userStatusRef, true);
 
+        // PERUBAHAN: Simpan sesi ke sessionStorage
+        sessionStorage.setItem("bkg_roomId", roomId);
+        sessionStorage.setItem("bkg_userId", bkg_currentUserId);
+
         bkg_listenToGameUpdates(roomId);
       };
 
@@ -769,7 +782,8 @@
         } else {
           await updateDoc(gameRef, { "players.player2": null });
         }
-        bkg_switchView("lobby");
+
+        bkg_switchView("lobby"); // switchView akan membersihkan session
       });
 
       bkg_copyCodeBtn.addEventListener("click", () => {
@@ -974,9 +988,42 @@
         });
       }
 
+      // --- PERUBAHAN: Fungsi untuk memeriksa sesi saat halaman dimuat ---
+      async function checkForSavedSession() {
+        const savedRoomId = sessionStorage.getItem("bkg_roomId");
+        const savedUserId = sessionStorage.getItem("bkg_userId");
+
+        if (savedRoomId && savedUserId && savedUserId === bkg_currentUserId) {
+          const gameRef = doc(bkg_gamesCollection, savedRoomId);
+          const docSnap = await getDoc(gameRef);
+
+          if (docSnap.exists()) {
+            // Room masih ada, coba masuk kembali
+            const players = docSnap.data().players;
+            const myPlayerData =
+              players.player1?.uid === savedUserId
+                ? players.player1
+                : players.player2;
+            if (myPlayerData) {
+              bkg_currentPlayerName = myPlayerData.name;
+              bkg_joinRoom(savedRoomId);
+              bkg_showToast("Berhasil terhubung kembali ke room!", "success");
+            }
+          } else {
+            // Room sudah tidak ada, hapus sesi
+            clearSession();
+          }
+        }
+      }
+
       onAuthStateChanged(bkg_auth, (user) => {
-        user && (bkg_currentUserId = user.uid);
+        if (user) {
+          bkg_currentUserId = user.uid;
+          // PERUBAHAN: Coba masuk kembali ke sesi setelah user terautentikasi
+          checkForSavedSession();
+        }
       });
+
       signInAnonymously(bkg_auth).catch((err) =>
         console.error("BKG Auth Error:", err)
       );
