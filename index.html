@@ -97,6 +97,14 @@
       .btn-secondary:hover:not(:disabled) {
         background-color: #4b5563;
       }
+      /* Class baru untuk tombol hijau */
+      .btn-success {
+        background-color: #16a34a;
+        color: white;
+      }
+      .btn-success:hover:not(:disabled) {
+        background-color: #15803d;
+      }
       .hidden-view {
         display: none;
       }
@@ -165,8 +173,6 @@
         border-style: solid;
         border-color: transparent transparent #4f46e5 transparent;
       }
-
-      /* CSS UNTUK CUSTOM SELECT */
       .custom-select-container {
         position: relative;
         width: 100%;
@@ -359,7 +365,6 @@
             </div>
           </div>
         </div>
-
         <div
           class="translate-container grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 items-start"
         >
@@ -405,7 +410,6 @@
               placeholder="Masukkan teks..."
             ></textarea>
           </div>
-
           <div class="flex items-center justify-center">
             <button
               id="swap-btn"
@@ -428,7 +432,6 @@
               </svg>
             </button>
           </div>
-
           <div class="translate-panel flex flex-col">
             <div class="panel-header">
               <span id="output-lang-label">Teks Aneh</span>
@@ -533,7 +536,12 @@
                 <button id="copy-code-btn" title="Salin Kode">📋</button>
               </div>
             </div>
-            <div class="hidden sm:block order-3" style="width: 110px"></div>
+            <button
+              id="reset-score-btn"
+              class="btn btn-secondary py-2 px-4 rounded-lg order-3 text-sm"
+            >
+              Reset Skor
+            </button>
           </div>
           <p
             id="status-message"
@@ -604,10 +612,15 @@
               ✌
             </button>
           </div>
-          <button
-            id="play-again-btn"
-            class="hidden-view btn btn-primary font-bold py-3 px-8 rounded-lg text-xl"
-          ></button>
+          <div
+            id="play-again-container"
+            class="flex justify-center hidden-view"
+          >
+            <button
+              id="play-again-btn"
+              class="btn btn-primary font-bold py-3 px-8 rounded-lg text-xl"
+            ></button>
+          </div>
           <div id="chat-container" class="mt-8 border-t-2 border-gray-700 pt-4">
             <h3 class="text-lg font-semibold mb-2 text-center">Chat Room</h3>
             <div
@@ -653,6 +666,7 @@
         serverTimestamp,
         query,
         orderBy,
+        increment,
       } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
       import {
         getDatabase,
@@ -663,666 +677,783 @@
         remove,
       } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 
-      // --- GLOBAL APP LOGIC ---
-      const mainTabGenerator = document.getElementById("mainTabGenerator");
-      const mainTabBKG = document.getElementById("mainTabBKG");
-      const generatorApp = document.getElementById("generatorApp");
-      const bkgApp = document.getElementById("bkgApp");
+      document.addEventListener("DOMContentLoaded", () => {
+        // --- GLOBAL APP LOGIC ---
+        const mainTabGenerator = document.getElementById("mainTabGenerator");
+        const mainTabBKG = document.getElementById("mainTabBKG");
+        const generatorApp = document.getElementById("generatorApp");
+        const bkgApp = document.getElementById("bkgApp");
 
-      function switchMainApp(app) {
-        generatorApp.classList.toggle("active", app === "generator");
-        bkgApp.classList.toggle("active", app === "bkg");
-        mainTabGenerator.classList.toggle("active", app === "generator");
-        mainTabBKG.classList.toggle("active", app === "bkg");
-      }
-      mainTabGenerator.addEventListener("click", () =>
-        switchMainApp("generator")
-      );
-      mainTabBKG.addEventListener("click", () => switchMainApp("bkg"));
-
-      // --- GENERATOR APP LOGIC ---
-      const inputText = document.getElementById("inputText");
-      const outputText = document.getElementById("outputText");
-      const swapBtn = document.getElementById("swap-btn");
-      const inputLangLabel = document.getElementById("input-lang-label");
-      const outputLangLabel = document.getElementById("output-lang-label");
-      const inputCopyBtn = document.getElementById("input-copy-btn");
-      const outputCopyBtn = document.getElementById("output-copy-btn");
-      const inputClearBtn = document.getElementById("input-clear-btn");
-      const ENCRYPTION_MAP = {},
-        DECRYPTION_MAP = {};
-      const alphabet = "abcdefghijklmnopqrstuvwxyz";
-      for (let i = 0; i < alphabet.length; i++) {
-        const char = alphabet[i];
-        const reversedChar = alphabet[alphabet.length - 1 - i];
-        ENCRYPTION_MAP[char] = reversedChar;
-        DECRYPTION_MAP[reversedChar] = char;
-      }
-      const MORSE_CODE_MAP = {
-        A: "•-",
-        B: "-•••",
-        C: "-•-•",
-        D: "-••",
-        E: "•",
-        F: "••-•",
-        G: "--•",
-        H: "••••",
-        I: "••",
-        J: "•---",
-        K: "-•-",
-        L: "•-••",
-        M: "--",
-        N: "-•",
-        O: "---",
-        P: "•--•",
-        Q: "--•-",
-        R: "•-•",
-        S: "•••",
-        T: "-",
-        U: "••-",
-        V: "•••-",
-        W: "•--",
-        X: "-••-",
-        Y: "-•--",
-        Z: "--••",
-        0: "-----",
-        1: "•----",
-        2: "••---",
-        3: "•••--",
-        4: "••••-",
-        5: "•••••",
-        6: "-••••",
-        7: "--•••",
-        8: "---••",
-        9: "----•",
-      };
-      const REVERSE_MORSE_MAP = Object.fromEntries(
-        Object.entries(MORSE_CODE_MAP).map((a) => a.reverse())
-      );
-      const translationFunctions = {
-        "text-to-garbled": (text) =>
-          text
-            .split("")
-            .map((char) =>
-              char >= "a" && char <= "z"
-                ? ENCRYPTION_MAP[char]
-                : char >= "A" && char <= "Z"
-                ? ENCRYPTION_MAP[char.toLowerCase()].toUpperCase()
-                : char
-            )
-            .join(""),
-        "garbled-to-text": (text) =>
-          text
-            .split("")
-            .map((char) =>
-              char >= "a" && char <= "z"
-                ? DECRYPTION_MAP[char]
-                : char >= "A" && char <= "Z"
-                ? DECRYPTION_MAP[char.toLowerCase()].toUpperCase()
-                : char
-            )
-            .join(""),
-        "text-to-morse": (text) =>
-          text
-            .toUpperCase()
-            .split("")
-            .map((char) => MORSE_CODE_MAP[char] || (char === " " ? "/" : ""))
-            .join("   "),
-        "morse-to-text": (text) =>
-          text
-            .trim()
-            .split(/[\s]{2,}/)
-            .map((code) => REVERSE_MORSE_MAP[code] || (code === "/" ? " " : ""))
-            .join(""),
-      };
-      let generatorType = "text-to-garbled";
-
-      function translate() {
-        const text = inputText.value;
-        const func = translationFunctions[generatorType];
-        if (func) outputText.value = func(text);
-      }
-      function updateLabels() {
-        const [from, to] = generatorType.split("-to-");
-        inputLangLabel.textContent = from
-          .replace(/-/g, " ")
-          .replace(/\b\w/g, (c) => c.toUpperCase());
-        outputLangLabel.textContent = to
-          .replace(/-/g, " ")
-          .replace(/\b\w/g, (c) => c.toUpperCase());
-      }
-
-      const customSelect = document.getElementById("custom-select");
-      const customSelectTrigger = customSelect.querySelector(
-        ".custom-select-trigger"
-      );
-      const selectedOptionEl = customSelect.querySelector(".selected-option");
-      const options = customSelect.querySelectorAll(".custom-option");
-
-      function updateSelectedOption(optionEl) {
-        options.forEach((opt) => opt.classList.remove("selected"));
-        optionEl.classList.add("selected");
-        selectedOptionEl.innerHTML = optionEl.innerHTML;
-        generatorType = optionEl.dataset.value;
-        customSelect.classList.remove("open");
-        updateLabels();
-        translate();
-      }
-
-      customSelectTrigger.addEventListener("click", () =>
-        customSelect.classList.toggle("open")
-      );
-      options.forEach((option) =>
-        option.addEventListener("click", () => updateSelectedOption(option))
-      );
-      document.addEventListener("click", (e) => {
-        if (!customSelect.contains(e.target))
-          customSelect.classList.remove("open");
-      });
-
-      inputText.addEventListener("input", translate);
-      swapBtn.addEventListener("click", () => {
-        [inputText.value, outputText.value] = [
-          outputText.value,
-          inputText.value,
-        ];
-        const [from, to] = generatorType.split("-to-");
-        const newType = `${to}-to-${from}`;
-        const newOption = Array.from(options).find(
-          (opt) => opt.dataset.value === newType
-        );
-        if (newOption) updateSelectedOption(newOption);
-      });
-      inputCopyBtn.addEventListener("click", () =>
-        navigator.clipboard.writeText(inputText.value)
-      );
-      outputCopyBtn.addEventListener("click", () =>
-        navigator.clipboard.writeText(outputText.value)
-      );
-      inputClearBtn.addEventListener("click", () => {
-        inputText.value = "";
-        outputText.value = "";
-      });
-
-      updateSelectedOption(options[0]);
-
-      // --- BATU GUNTING KERTAS APP LOGIC ---
-      const bkg_firebaseConfig = {
-        apiKey: "AIzaSyCXU7oqo3m3ry7om9qQ5zfOGTu-mL_YOrc",
-        authDomain: "realtime-database-99f23.firebaseapp.com",
-        projectId: "realtime-database-99f23",
-        storageBucket: "realtime-database-99f23.appspot.com",
-        messagingSenderId: "642043922874",
-        appId: "1:642043922874:web:6222047848a815392cf583",
-        databaseURL:
-          "https://realtime-database-99f23-default-rtdb.firebaseio.com/",
-      };
-      const bkg_app = initializeApp(bkg_firebaseConfig, "BKG_APP");
-      const bkg_auth = getAuth(bkg_app);
-      const bkg_db = getFirestore(bkg_app);
-      const bkg_rtdb = getDatabase(bkg_app);
-      const bkg_gamesCollection = collection(bkg_db, "rps-rooms");
-      const bkg_player1Card = document.getElementById("p1-card");
-      const bkg_player2Card = document.getElementById("p2-card");
-      const bkg_lobbyView = document.getElementById("lobby-view"),
-        bkg_gameView = document.getElementById("game-view"),
-        bkg_playerNameInput = document.getElementById("player-name-input"),
-        bkg_createRoomBtn = document.getElementById("create-room-btn"),
-        bkg_roomCodeInput = document.getElementById("room-code-input"),
-        bkg_joinRoomBtn = document.getElementById("join-room-btn"),
-        bkg_lobbyError = document.getElementById("lobby-error"),
-        bkg_roomCodeDisplay = document.getElementById("room-code-display"),
-        bkg_copyCodeBtn = document.getElementById("copy-code-btn"),
-        bkg_leaveRoomBtn = document.getElementById("leave-room-btn"),
-        bkg_statusMessage = document.getElementById("status-message"),
-        bkg_player1NameEl = document.getElementById("player1-name"),
-        bkg_player2NameEl = document.getElementById("player2-name"),
-        bkg_player1ChoiceText = document.getElementById("player1-choice-text"),
-        bkg_player2ChoiceText = document.getElementById("player2-choice-text"),
-        bkg_resultMessage = document.getElementById("result-message"),
-        bkg_choices = document.getElementById("choices"),
-        bkg_playAgainBtn = document.getElementById("play-again-btn"),
-        bkg_toast = document.getElementById("toast-notification");
-      const chatMessages = document.getElementById("chat-messages"),
-        chatInput = document.getElementById("chat-input"),
-        chatSendBtn = document.getElementById("chat-send-btn");
-
-      let bkg_currentUserId = null,
-        bkg_currentPlayerName = "",
-        bkg_currentRoomId = null,
-        bkg_playerNumber = null,
-        bkg_unsubscribeGame = null;
-      let bkg_toastTimeout,
-        afkTimeout = null,
-        countdownInterval = null,
-        rtdbListenerUnsubscribe = null,
-        chatUnsubscribe = null;
-      let chatBubbleTimeouts = {};
-      let playersData = {};
-
-      const bkg_showToast = (message, type = "info") => {
-        clearTimeout(bkg_toastTimeout);
-        bkg_toast.textContent = message;
-        bkg_toast.className = `toast-${type}`;
-        bkg_toast.classList.add("show");
-        bkg_toastTimeout = setTimeout(
-          () => bkg_toast.classList.remove("show"),
-          4000
-        );
-      };
-      const clearSession = () => {
-        sessionStorage.removeItem("bkg_roomId");
-        sessionStorage.removeItem("bkg_userId");
-      };
-      const bkg_switchView = (view) => {
-        bkg_gameView.classList.toggle("hidden-view", view !== "game");
-        bkg_lobbyView.classList.toggle("hidden-view", view === "game");
-        if (view !== "game") {
-          if (bkg_unsubscribeGame) bkg_unsubscribeGame();
-          if (rtdbListenerUnsubscribe) rtdbListenerUnsubscribe();
-          if (chatUnsubscribe) chatUnsubscribe();
-          clearSession();
-          bkg_resetGameState();
+        function switchMainApp(app) {
+          generatorApp.classList.toggle("active", app === "generator");
+          bkgApp.classList.toggle("active", app === "bkg");
+          mainTabGenerator.classList.toggle("active", app === "generator");
+          mainTabBKG.classList.toggle("active", app === "bkg");
         }
-      };
-      const bkg_resetGameState = () => {
-        bkg_currentRoomId = null;
-        bkg_playerNumber = null;
-        bkg_unsubscribeGame = null;
-        rtdbListenerUnsubscribe = null;
-        chatUnsubscribe = null;
-        bkg_lobbyError.textContent = "";
-        bkg_roomCodeInput.value = "";
-        clearTimeout(afkTimeout);
-        clearInterval(countdownInterval);
-      };
-      bkg_createRoomBtn.addEventListener("click", async () => {
-        const name = bkg_playerNameInput.value.trim();
-        if (!name) return bkg_showToast("Nama tidak boleh kosong.", "error");
-        bkg_currentPlayerName = name;
-        const roomId = Math.random().toString(36).substring(2, 7).toUpperCase();
-        await setDoc(doc(bkg_gamesCollection, roomId), {
-          players: {
-            player1: {
-              uid: bkg_currentUserId,
-              name,
-              choice: null,
-              wantsToPlayAgain: false,
-              status: "online",
-            },
-            player2: null,
-          },
-          createdAt: serverTimestamp(),
+        mainTabGenerator.addEventListener("click", () =>
+          switchMainApp("generator")
+        );
+        mainTabBKG.addEventListener("click", () => switchMainApp("bkg"));
+
+        // --- GENERATOR APP LOGIC ---
+        const inputText = document.getElementById("inputText");
+        const outputText = document.getElementById("outputText");
+        const swapBtn = document.getElementById("swap-btn");
+        const inputLangLabel = document.getElementById("input-lang-label");
+        const outputLangLabel = document.getElementById("output-lang-label");
+        const inputCopyBtn = document.getElementById("input-copy-btn");
+        const outputCopyBtn = document.getElementById("output-copy-btn");
+        const inputClearBtn = document.getElementById("input-clear-btn");
+        const ENCRYPTION_MAP = {},
+          DECRYPTION_MAP = {};
+        const alphabet = "abcdefghijklmnopqrstuvwxyz";
+        for (let i = 0; i < alphabet.length; i++) {
+          const char = alphabet[i];
+          const reversedChar = alphabet[alphabet.length - 1 - i];
+          ENCRYPTION_MAP[char] = reversedChar;
+          DECRYPTION_MAP[reversedChar] = char;
+        }
+        const MORSE_CODE_MAP = {
+          A: "•-",
+          B: "-•••",
+          C: "-•-•",
+          D: "-••",
+          E: "•",
+          F: "••-•",
+          G: "--•",
+          H: "••••",
+          I: "••",
+          J: "•---",
+          K: "-•-",
+          L: "•-••",
+          M: "--",
+          N: "-•",
+          O: "---",
+          P: "•--•",
+          Q: "--•-",
+          R: "•-•",
+          S: "•••",
+          T: "-",
+          U: "••-",
+          V: "•••-",
+          W: "•--",
+          X: "-••-",
+          Y: "-•--",
+          Z: "--••",
+          0: "-----",
+          1: "•----",
+          2: "••---",
+          3: "•••--",
+          4: "••••-",
+          5: "•••••",
+          6: "-••••",
+          7: "--•••",
+          8: "---••",
+          9: "----•",
+        };
+        const REVERSE_MORSE_MAP = Object.fromEntries(
+          Object.entries(MORSE_CODE_MAP).map((a) => a.reverse())
+        );
+        const translationFunctions = {
+          "text-to-garbled": (text) =>
+            text
+              .split("")
+              .map((char) =>
+                char >= "a" && char <= "z"
+                  ? ENCRYPTION_MAP[char]
+                  : char >= "A" && char <= "Z"
+                  ? ENCRYPTION_MAP[char.toLowerCase()].toUpperCase()
+                  : char
+              )
+              .join(""),
+          "garbled-to-text": (text) =>
+            text
+              .split("")
+              .map((char) =>
+                char >= "a" && char <= "z"
+                  ? DECRYPTION_MAP[char]
+                  : char >= "A" && char <= "Z"
+                  ? DECRYPTION_MAP[char.toLowerCase()].toUpperCase()
+                  : char
+              )
+              .join(""),
+          "text-to-morse": (text) =>
+            text
+              .toUpperCase()
+              .split("")
+              .map((char) => MORSE_CODE_MAP[char] || (char === " " ? "/" : ""))
+              .join("   "),
+          "morse-to-text": (text) =>
+            text
+              .trim()
+              .split(/[\s]{2,}/)
+              .map(
+                (code) => REVERSE_MORSE_MAP[code] || (code === "/" ? " " : "")
+              )
+              .join(""),
+        };
+        let generatorType = "text-to-garbled";
+
+        function translate() {
+          const text = inputText.value;
+          const func = translationFunctions[generatorType];
+          if (func) outputText.value = func(text);
+        }
+        function updateLabels() {
+          const [from, to] = generatorType.split("-to-");
+          inputLangLabel.textContent = from
+            .replace(/-/g, " ")
+            .replace(/\b\w/g, (c) => c.toUpperCase());
+          outputLangLabel.textContent = to
+            .replace(/-/g, " ")
+            .replace(/\b\w/g, (c) => c.toUpperCase());
+        }
+
+        const customSelect = document.getElementById("custom-select");
+        const customSelectTrigger = customSelect.querySelector(
+          ".custom-select-trigger"
+        );
+        const selectedOptionEl = customSelect.querySelector(".selected-option");
+        const options = customSelect.querySelectorAll(".custom-option");
+
+        function updateSelectedOption(optionEl) {
+          options.forEach((opt) => opt.classList.remove("selected"));
+          optionEl.classList.add("selected");
+          selectedOptionEl.innerHTML = optionEl.innerHTML;
+          generatorType = optionEl.dataset.value;
+          customSelect.classList.remove("open");
+          updateLabels();
+          translate();
+        }
+
+        customSelectTrigger.addEventListener("click", () =>
+          customSelect.classList.toggle("open")
+        );
+        options.forEach((option) =>
+          option.addEventListener("click", () => updateSelectedOption(option))
+        );
+        document.addEventListener("click", (e) => {
+          if (!customSelect.contains(e.target))
+            customSelect.classList.remove("open");
         });
-        bkg_joinRoom(roomId);
-      });
-      bkg_joinRoomBtn.addEventListener("click", async () => {
-        const name = bkg_playerNameInput.value.trim();
-        if (!name) return bkg_showToast("Nama tidak boleh kosong.", "error");
-        bkg_currentPlayerName = name;
-        const roomId = bkg_roomCodeInput.value.trim().toUpperCase();
-        if (!roomId)
-          return bkg_showToast("Kode room tidak boleh kosong.", "error");
-        const gameRef = doc(bkg_gamesCollection, roomId);
-        const gameDoc = await getDoc(gameRef);
-        if (gameDoc.exists()) {
-          if (gameDoc.data().players.player2)
-            bkg_showToast("Room ini sudah penuh.", "error");
-          else {
-            await updateDoc(gameRef, {
-              "players.player2": {
+
+        inputText.addEventListener("input", translate);
+        swapBtn.addEventListener("click", () => {
+          [inputText.value, outputText.value] = [
+            outputText.value,
+            inputText.value,
+          ];
+          const [from, to] = generatorType.split("-to-");
+          const newType = `${to}-to-${from}`;
+          const newOption = Array.from(options).find(
+            (opt) => opt.dataset.value === newType
+          );
+          if (newOption) updateSelectedOption(newOption);
+        });
+        inputCopyBtn.addEventListener("click", () =>
+          navigator.clipboard.writeText(inputText.value)
+        );
+        outputCopyBtn.addEventListener("click", () =>
+          navigator.clipboard.writeText(outputText.value)
+        );
+        inputClearBtn.addEventListener("click", () => {
+          inputText.value = "";
+          outputText.value = "";
+        });
+
+        updateSelectedOption(options[0]);
+
+        // --- BATU GUNTING KERTAS APP LOGIC ---
+        const bkg_firebaseConfig = {
+          apiKey: "AIzaSyCXU7oqo3m3ry7om9qQ5zfOGTu-mL_YOrc",
+          authDomain: "realtime-database-99f23.firebaseapp.com",
+          projectId: "realtime-database-99f23",
+          storageBucket: "realtime-database-99f23.appspot.com",
+          messagingSenderId: "642043922874",
+          appId: "1:642043922874:web:6222047848a815392cf583",
+          databaseURL:
+            "https://realtime-database-99f23-default-rtdb.firebaseio.com/",
+        };
+        const bkg_app = initializeApp(bkg_firebaseConfig, "BKG_APP");
+        const bkg_auth = getAuth(bkg_app);
+        const bkg_db = getFirestore(bkg_app);
+        const bkg_rtdb = getDatabase(bkg_app);
+        const bkg_gamesCollection = collection(bkg_db, "rps-rooms");
+
+        const bkg_player1Card = document.getElementById("p1-card");
+        const bkg_player2Card = document.getElementById("p2-card");
+        const bkg_lobbyView = document.getElementById("lobby-view");
+        const bkg_gameView = document.getElementById("game-view");
+        const bkg_playerNameInput =
+          document.getElementById("player-name-input");
+        const bkg_createRoomBtn = document.getElementById("create-room-btn");
+        const bkg_roomCodeInput = document.getElementById("room-code-input");
+        const bkg_joinRoomBtn = document.getElementById("join-room-btn");
+        const bkg_lobbyError = document.getElementById("lobby-error");
+        const bkg_roomCodeDisplay =
+          document.getElementById("room-code-display");
+        const bkg_copyCodeBtn = document.getElementById("copy-code-btn");
+        const bkg_leaveRoomBtn = document.getElementById("leave-room-btn");
+        const bkg_statusMessage = document.getElementById("status-message");
+        const bkg_player1NameEl = document.getElementById("player1-name");
+        const bkg_player2NameEl = document.getElementById("player2-name");
+        const bkg_player1ChoiceText = document.getElementById(
+          "player1-choice-text"
+        );
+        const bkg_player2ChoiceText = document.getElementById(
+          "player2-choice-text"
+        );
+        const bkg_resultMessage = document.getElementById("result-message");
+        const bkg_choices = document.getElementById("choices");
+        const bkg_playAgainBtn = document.getElementById("play-again-btn");
+        const bkg_toast = document.getElementById("toast-notification");
+        const chatMessages = document.getElementById("chat-messages");
+        const chatInput = document.getElementById("chat-input");
+        const chatSendBtn = document.getElementById("chat-send-btn");
+        const bkg_playAgainContainer = document.getElementById(
+          "play-again-container"
+        );
+        const bkg_resetScoreBtn = document.getElementById("reset-score-btn");
+
+        let bkg_currentUserId = null,
+          bkg_currentPlayerName = "",
+          bkg_currentRoomId = null,
+          bkg_playerNumber = null,
+          bkg_unsubscribeGame = null;
+        let bkg_toastTimeout,
+          afkTimeout = null,
+          countdownInterval = null,
+          rtdbListenerUnsubscribe = null,
+          chatUnsubscribe = null;
+        let chatBubbleTimeouts = {};
+        let playersData = {};
+
+        const bkg_showToast = (message, type = "info") => {
+          clearTimeout(bkg_toastTimeout);
+          bkg_toast.textContent = message;
+          bkg_toast.className = `toast-${type}`;
+          bkg_toast.classList.add("show");
+          bkg_toastTimeout = setTimeout(
+            () => bkg_toast.classList.remove("show"),
+            4000
+          );
+        };
+        const clearSession = () => {
+          sessionStorage.removeItem("bkg_roomId");
+          sessionStorage.removeItem("bkg_userId");
+        };
+        const bkg_switchView = (view) => {
+          bkg_gameView.classList.toggle("hidden-view", view !== "game");
+          bkg_lobbyView.classList.toggle("hidden-view", view === "game");
+          if (view !== "game") {
+            if (bkg_unsubscribeGame) bkg_unsubscribeGame();
+            if (rtdbListenerUnsubscribe) rtdbListenerUnsubscribe();
+            if (chatUnsubscribe) chatUnsubscribe();
+            clearSession();
+            bkg_resetGameState();
+          }
+        };
+        const bkg_resetGameState = () => {
+          bkg_currentRoomId = null;
+          bkg_playerNumber = null;
+          bkg_unsubscribeGame = null;
+          rtdbListenerUnsubscribe = null;
+          chatUnsubscribe = null;
+          bkg_lobbyError.textContent = "";
+          bkg_roomCodeInput.value = "";
+          clearTimeout(afkTimeout);
+          clearInterval(countdownInterval);
+        };
+
+        bkg_createRoomBtn.addEventListener("click", async () => {
+          const name = bkg_playerNameInput.value.trim();
+          if (!name) return bkg_showToast("Nama tidak boleh kosong.", "error");
+          bkg_currentPlayerName = name;
+          const roomId = Math.random()
+            .toString(36)
+            .substring(2, 7)
+            .toUpperCase();
+          const gameRef = doc(bkg_gamesCollection, roomId);
+          await setDoc(gameRef, {
+            players: {
+              player1: {
                 uid: bkg_currentUserId,
                 name,
                 choice: null,
                 wantsToPlayAgain: false,
                 status: "online",
+                score: 0,
+                wantsToReset: false,
               },
-            });
-            bkg_joinRoom(roomId);
-          }
-        } else {
-          bkg_showToast("Room tidak ditemukan.", "error");
-        }
-      });
-      const bkg_joinRoom = (roomId) => {
-        bkg_currentRoomId = roomId;
-        bkg_switchView("game");
-        bkg_roomCodeDisplay.textContent = roomId;
-        const presenceRef = ref(
-          bkg_rtdb,
-          `/status/${roomId}/${bkg_currentUserId}`
-        );
-        onDisconnect(presenceRef).remove();
-        set(presenceRef, true);
-        sessionStorage.setItem("bkg_roomId", roomId);
-        sessionStorage.setItem("bkg_userId", bkg_currentUserId);
-        bkg_listenToGameUpdates(roomId);
-      };
-      bkg_leaveRoomBtn.addEventListener("click", async () => {
-        if (!bkg_currentRoomId || !bkg_playerNumber) return;
-        remove(
-          ref(bkg_rtdb, `/status/${bkg_currentRoomId}/${bkg_currentUserId}`)
-        );
-        const gameRef = doc(bkg_gamesCollection, bkg_currentRoomId);
-        if (bkg_playerNumber === "player1") await deleteDoc(gameRef);
-        else await updateDoc(gameRef, { "players.player2": null });
-        bkg_switchView("lobby");
-      });
-      bkg_copyCodeBtn.addEventListener("click", () =>
-        navigator.clipboard
-          .writeText(bkg_currentRoomId)
-          .then(() => bkg_showToast("Kode room disalin!", "success"))
-      );
-      function bkg_listenToGameUpdates(roomId) {
-        bkg_unsubscribeGame = onSnapshot(
-          doc(bkg_gamesCollection, roomId),
-          (doc) => {
-            if (doc.exists()) bkg_updateUI(doc.data());
-            else if (bkg_playerNumber === "player2") {
-              bkg_showToast("Room ditutup oleh host.", "error");
-              setTimeout(() => bkg_switchView("lobby"), 3000);
-            }
-          }
-        );
-        rtdbListenerUnsubscribe = onValue(
-          ref(bkg_rtdb, `/status/${roomId}`),
-          (snapshot) => {
-            if (!bkg_currentRoomId) return;
-            handleDisconnects(snapshot.val() || {});
-          }
-        );
-        chatUnsubscribe = onSnapshot(
-          query(
-            collection(bkg_db, "rps-rooms", roomId, "messages"),
-            orderBy("timestamp", "asc")
-          ),
-          (snapshot) => {
-            updateChatBox(snapshot.docs);
-            snapshot.docChanges().forEach((change) => {
-              if (change.type === "added" && change.doc.data().timestamp)
-                showChatBubble(change.doc.data());
-            });
-          }
-        );
-      }
-      function updateChatBox(docs) {
-        chatMessages.innerHTML = "";
-        docs.forEach((doc) => {
-          const messageData = doc.data();
-          const messageEl = document.createElement("p");
-          const isMe = messageData.senderId === bkg_currentUserId;
-          messageEl.innerHTML = `<span class="font-bold ${
-            isMe ? "text-indigo-400" : "text-green-400"
-          }">${messageData.senderName}:</span> ${messageData.text}`;
-          messageEl.className = `w-full break-words p-2 rounded-lg ${
-            isMe
-              ? "bg-indigo-900/50 self-end text-right"
-              : "bg-gray-700/50 self-start text-left"
-          }`;
-          chatMessages.appendChild(messageEl);
+              player2: null,
+            },
+            createdAt: serverTimestamp(),
+            choicesProcessed: false,
+          });
+          bkg_joinRoom(roomId);
         });
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-      }
-      function showChatBubble(messageData) {
-        const p1_uid = playersData.player1?.uid;
-        const p2_uid = playersData.player2?.uid;
-        let bubbleId =
-          messageData.senderId === p1_uid
-            ? "p1-chat-bubble"
-            : messageData.senderId === p2_uid
-            ? "p2-chat-bubble"
-            : null;
-        if (!bubbleId) return;
-        const bubbleEl = document.getElementById(bubbleId);
-        if (!bubbleEl) return;
-        if (chatBubbleTimeouts[bubbleId])
-          clearTimeout(chatBubbleTimeouts[bubbleId]);
-        bubbleEl.textContent = messageData.text;
-        bubbleEl.classList.add("show");
-        chatBubbleTimeouts[bubbleId] = setTimeout(
-          () => bubbleEl.classList.remove("show"),
-          4000
+
+        bkg_joinRoomBtn.addEventListener("click", async () => {
+          const name = bkg_playerNameInput.value.trim();
+          if (!name) return bkg_showToast("Nama tidak boleh kosong.", "error");
+          bkg_currentPlayerName = name;
+          const roomId = bkg_roomCodeInput.value.trim().toUpperCase();
+          if (!roomId)
+            return bkg_showToast("Kode room tidak boleh kosong.", "error");
+          const gameRef = doc(bkg_gamesCollection, roomId);
+          const gameDoc = await getDoc(gameRef);
+          if (gameDoc.exists()) {
+            if (gameDoc.data().players.player2)
+              bkg_showToast("Room ini sudah penuh.", "error");
+            else {
+              await updateDoc(gameRef, {
+                "players.player2": {
+                  uid: bkg_currentUserId,
+                  name,
+                  choice: null,
+                  wantsToPlayAgain: false,
+                  status: "online",
+                  score: 0,
+                  wantsToReset: false,
+                },
+              });
+              bkg_joinRoom(roomId);
+            }
+          } else {
+            bkg_showToast("Room tidak ditemukan.", "error");
+          }
+        });
+
+        const bkg_joinRoom = (roomId) => {
+          bkg_currentRoomId = roomId;
+          bkg_switchView("game");
+          bkg_roomCodeDisplay.textContent = roomId;
+          const presenceRef = ref(
+            bkg_rtdb,
+            `/status/${roomId}/${bkg_currentUserId}`
+          );
+          onDisconnect(presenceRef).remove();
+          set(presenceRef, true);
+          sessionStorage.setItem("bkg_roomId", roomId);
+          sessionStorage.setItem("bkg_userId", bkg_currentUserId);
+          bkg_listenToGameUpdates(roomId);
+        };
+
+        bkg_leaveRoomBtn.addEventListener("click", async () => {
+          if (!bkg_currentRoomId || !bkg_playerNumber) return;
+          remove(
+            ref(bkg_rtdb, `/status/${bkg_currentRoomId}/${bkg_currentUserId}`)
+          );
+          const gameRef = doc(bkg_gamesCollection, bkg_currentRoomId);
+          if (bkg_playerNumber === "player1") await deleteDoc(gameRef);
+          else await updateDoc(gameRef, { "players.player2": null });
+          bkg_switchView("lobby");
+        });
+
+        bkg_copyCodeBtn.addEventListener("click", () =>
+          navigator.clipboard
+            .writeText(bkg_currentRoomId)
+            .then(() => bkg_showToast("Kode room disalin!", "success"))
         );
-      }
-      const sendMessage = async () => {
-        const text = chatInput.value.trim();
-        if (text === "" || !bkg_currentRoomId) return;
-        try {
-          await addDoc(
-            collection(bkg_db, "rps-rooms", bkg_currentRoomId, "messages"),
-            {
-              text,
-              senderId: bkg_currentUserId,
-              senderName: bkg_currentPlayerName,
-              timestamp: serverTimestamp(),
+
+        function bkg_listenToGameUpdates(roomId) {
+          bkg_unsubscribeGame = onSnapshot(
+            doc(bkg_gamesCollection, roomId),
+            (doc) => {
+              if (doc.exists()) bkg_updateUI(doc.data());
+              else if (bkg_playerNumber === "player2") {
+                bkg_showToast("Room ditutup oleh host.", "error");
+                setTimeout(() => bkg_switchView("lobby"), 3000);
+              }
             }
           );
-          chatInput.value = "";
-        } catch (error) {
-          console.error("Gagal mengirim pesan:", error);
-          bkg_showToast("Gagal mengirim pesan.", "error");
+          rtdbListenerUnsubscribe = onValue(
+            ref(bkg_rtdb, `/status/${roomId}`),
+            (snapshot) => {
+              if (!bkg_currentRoomId) return;
+              handleDisconnects(snapshot.val() || {});
+            }
+          );
+          chatUnsubscribe = onSnapshot(
+            query(
+              collection(bkg_db, "rps-rooms", roomId, "messages"),
+              orderBy("timestamp", "asc")
+            ),
+            (snapshot) => {
+              updateChatBox(snapshot.docs);
+              snapshot.docChanges().forEach((change) => {
+                if (change.type === "added" && change.doc.data().timestamp)
+                  showChatBubble(change.doc.data());
+              });
+            }
+          );
         }
-      };
-      chatSendBtn.addEventListener("click", sendMessage);
-      chatInput.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") sendMessage();
-      });
-      async function handleDisconnects(onlineUsers) {
-        if (!bkg_currentRoomId) return;
-        const gameRef = doc(bkg_db, "rps-rooms", bkg_currentRoomId);
-        const gameDoc = await getDoc(gameRef);
-        if (!gameDoc.exists()) return;
-        playersData = gameDoc.data().players;
-        const { player1: p1, player2: p2 } = playersData;
-        const updates = {};
-        if (
-          p1 &&
-          p1.uid !== bkg_currentUserId &&
-          !onlineUsers[p1.uid] &&
-          p1.status === "online"
-        )
-          updates["players.player1.status"] = "offline";
-        if (
-          p2 &&
-          p2.uid !== bkg_currentUserId &&
-          !onlineUsers[p2.uid] &&
-          p2.status === "online"
-        )
-          updates["players.player2.status"] = "offline";
-        if (Object.keys(updates).length > 0) await updateDoc(gameRef, updates);
-      }
-      function bkg_updateUI(gameState) {
-        playersData = gameState.players;
-        const { player1: p1, player2: p2 } = playersData;
-        bkg_playerNumber =
-          p1?.uid === bkg_currentUserId
-            ? "player1"
-            : p2?.uid === bkg_currentUserId
-            ? "player2"
-            : null;
-        if (!bkg_playerNumber || !playersData[bkg_playerNumber]) return;
-        bkg_player1Card.classList.toggle(
-          "border-indigo-500",
-          bkg_playerNumber === "player1"
-        );
-        bkg_player2Card.classList.toggle(
-          "border-indigo-500",
-          bkg_playerNumber === "player2"
-        );
-        const opponent =
-          playersData[bkg_playerNumber === "player1" ? "player2" : "player1"];
-        if (opponent && opponent.status === "offline") {
-          bkg_statusMessage.textContent = "Lawan telah keluar dari permainan.";
-          bkg_choices.classList.add("hidden");
-          bkg_playAgainBtn.classList.add("hidden-view");
-          bkg_resultMessage.textContent = "";
+        function updateChatBox(docs) {
+          chatMessages.innerHTML = "";
+          docs.forEach((doc) => {
+            const messageData = doc.data();
+            const messageEl = document.createElement("p");
+            const isMe = messageData.senderId === bkg_currentUserId;
+            messageEl.innerHTML = `<span class="font-bold ${
+              isMe ? "text-indigo-400" : "text-green-400"
+            }">${messageData.senderName}:</span> ${messageData.text}`;
+            messageEl.className = `w-full break-words p-2 rounded-lg ${
+              isMe
+                ? "bg-indigo-900/50 self-end text-right"
+                : "bg-gray-700/50 self-start text-left"
+            }`;
+            chatMessages.appendChild(messageEl);
+          });
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        function showChatBubble(messageData) {
+          const p1_uid = playersData.player1?.uid;
+          const p2_uid = playersData.player2?.uid;
+          let bubbleId =
+            messageData.senderId === p1_uid
+              ? "p1-chat-bubble"
+              : messageData.senderId === p2_uid
+              ? "p2-chat-bubble"
+              : null;
+          if (!bubbleId) return;
+          const bubbleEl = document.getElementById(bubbleId);
+          if (!bubbleEl) return;
+          if (chatBubbleTimeouts[bubbleId])
+            clearTimeout(chatBubbleTimeouts[bubbleId]);
+          bubbleEl.textContent = messageData.text;
+          bubbleEl.classList.add("show");
+          chatBubbleTimeouts[bubbleId] = setTimeout(
+            () => bubbleEl.classList.remove("show"),
+            4000
+          );
+        }
+        const sendMessage = async () => {
+          const text = chatInput.value.trim();
+          if (text === "" || !bkg_currentRoomId) return;
+          try {
+            await addDoc(
+              collection(bkg_db, "rps-rooms", bkg_currentRoomId, "messages"),
+              {
+                text,
+                senderId: bkg_currentUserId,
+                senderName: bkg_currentPlayerName,
+                timestamp: serverTimestamp(),
+              }
+            );
+            chatInput.value = "";
+          } catch (error) {
+            console.error("Gagal mengirim pesan:", error);
+            bkg_showToast("Gagal mengirim pesan.", "error");
+          }
+        };
+        chatSendBtn.addEventListener("click", sendMessage);
+        chatInput.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") sendMessage();
+        });
+        async function handleDisconnects(onlineUsers) {
+          if (!bkg_currentRoomId) return;
+          const gameRef = doc(bkg_db, "rps-rooms", bkg_currentRoomId);
+          const gameDoc = await getDoc(gameRef);
+          if (!gameDoc.exists()) return;
+          playersData = gameDoc.data().players;
+          const { player1: p1, player2: p2 } = playersData;
+          const updates = {};
+          if (
+            p1 &&
+            p1.uid !== bkg_currentUserId &&
+            !onlineUsers[p1.uid] &&
+            p1.status === "online"
+          )
+            updates["players.player1.status"] = "offline";
+          if (
+            p2 &&
+            p2.uid !== bkg_currentUserId &&
+            !onlineUsers[p2.uid] &&
+            p2.status === "online"
+          )
+            updates["players.player2.status"] = "offline";
+          if (Object.keys(updates).length > 0)
+            await updateDoc(gameRef, updates);
+        }
+
+        async function updateScoreAndState(winner) {
+          if (!bkg_currentRoomId) return;
+          const gameRef = doc(bkg_gamesCollection, bkg_currentRoomId);
+          const updates = { choicesProcessed: true };
+          if (winner !== "draw") {
+            updates[`players.${winner}.score`] = increment(1);
+          }
+          await updateDoc(gameRef, updates);
+        }
+
+        function bkg_updateUI(gameState) {
+          playersData = gameState.players;
+          const { player1: p1, player2: p2 } = playersData;
+          bkg_playerNumber =
+            p1?.uid === bkg_currentUserId
+              ? "player1"
+              : p2?.uid === bkg_currentUserId
+              ? "player2"
+              : null;
+          if (!bkg_playerNumber || !playersData[bkg_playerNumber]) return;
+
+          bkg_player1Card.classList.toggle(
+            "border-indigo-500",
+            bkg_playerNumber === "player1"
+          );
+          bkg_player2Card.classList.toggle(
+            "border-indigo-500",
+            bkg_playerNumber === "player2"
+          );
+          bkg_player1NameEl.innerHTML = `${
+            p1?.name || "Pemain 1"
+          } <span class="text-yellow-400">(${p1?.score || 0})</span>`;
+          bkg_player2NameEl.innerHTML = `${
+            p2?.name || "Menunggu..."
+          } <span class="text-yellow-400">(${p2?.score || 0})</span>`;
+
+          const opponent =
+            playersData[bkg_playerNumber === "player1" ? "player2" : "player1"];
+          if (opponent && opponent.status === "offline") {
+            bkg_statusMessage.textContent =
+              "Lawan telah keluar dari permainan.";
+            bkg_choices.classList.add("hidden");
+            bkg_playAgainContainer.classList.add("hidden-view");
+            bkg_resultMessage.textContent = "";
+            clearTimeout(afkTimeout);
+            clearInterval(countdownInterval);
+            return;
+          }
+
+          const choiceMap = { rock: "✊", paper: "✋", scissors: "✌" };
+          const displayChoice = (player, element, isOpponent) => {
+            element.textContent = player?.choice
+              ? !isOpponent || (p1?.choice && p2?.choice)
+                ? choiceMap[player.choice]
+                : "✅"
+              : "?";
+          };
+          displayChoice(
+            p1,
+            bkg_player1ChoiceText,
+            bkg_playerNumber !== "player1"
+          );
+          displayChoice(
+            p2,
+            bkg_player2ChoiceText,
+            bkg_playerNumber !== "player2"
+          );
+
           clearTimeout(afkTimeout);
           clearInterval(countdownInterval);
-          return;
-        }
-        bkg_player1NameEl.textContent = p1?.name || "Pemain 1";
-        bkg_player2NameEl.textContent = p2?.name || "Menunggu...";
-        const choiceMap = { rock: "✊", paper: "✋", scissors: "✌" };
-        const displayChoice = (player, element, isOpponent) => {
-          element.textContent = player?.choice
-            ? !isOpponent || (p1?.choice && p2?.choice)
-              ? choiceMap[player.choice]
-              : "✅"
-            : "?";
-        };
-        displayChoice(
-          p1,
-          bkg_player1ChoiceText,
-          bkg_playerNumber !== "player1"
-        );
-        displayChoice(
-          p2,
-          bkg_player2ChoiceText,
-          bkg_playerNumber !== "player2"
-        );
-        clearTimeout(afkTimeout);
-        clearInterval(countdownInterval);
-        if (p2) {
-          if (p1.choice && p2.choice) {
-            bkg_choices.classList.add("hidden");
-            bkg_playAgainBtn.classList.remove("hidden-view");
-            const winner = determineWinner(p1.choice, p2.choice);
-            bkg_resultMessage.textContent =
-              winner === "draw"
-                ? "Hasilnya Seri!"
-                : winner === bkg_playerNumber
-                ? "Kamu Menang! 🎉"
-                : "Kamu Kalah! 😞";
-            const me = playersData[bkg_playerNumber];
-            bkg_playAgainBtn.disabled = me.wantsToPlayAgain;
-            bkg_playAgainBtn.textContent = me.wantsToPlayAgain
-              ? "Menunggu Lawan..."
-              : "Main Lagi";
-            bkg_statusMessage.textContent = me.wantsToPlayAgain
-              ? "Menunggu persetujuan lawan..."
-              : opponent?.wantsToPlayAgain
-              ? "Lawan menantangmu! Klik 'Main Lagi'."
-              : "Klik 'Main Lagi' untuk rematch!";
-            if (
-              p1.wantsToPlayAgain &&
-              p2.wantsToPlayAgain &&
-              bkg_playerNumber === "player1"
-            )
-              resetForNewRound();
-          } else {
-            bkg_choices.classList.remove("hidden");
-            bkg_playAgainBtn.classList.add("hidden-view");
-            bkg_resultMessage.textContent = "";
-            let time = 30;
-            bkg_statusMessage.textContent = `Pilih jagoanmu! Waktu: ${time}s`;
-            countdownInterval = setInterval(() => {
-              time--;
-              bkg_statusMessage.textContent = `Pilih jagoanmu! Waktu: ${time}s`;
-              if (time <= 0) clearInterval(countdownInterval);
-            }, 1000);
-            afkTimeout = setTimeout(() => handleAfkTimeout(p1, p2), 30000);
-          }
-        } else {
-          bkg_statusMessage.textContent =
-            "Bagikan kode untuk mengundang temanmu!";
-          bkg_choices.classList.add("hidden");
-          bkg_playAgainBtn.classList.add("hidden-view");
-          bkg_resultMessage.textContent = "";
-        }
-      }
-      async function handleAfkTimeout(p1, p2) {
-        const gameRef = doc(bkg_gamesCollection, bkg_currentRoomId),
-          updates = {};
-        let winnerMessage = "Waktu habis! ";
-        if (!p1.choice && !p2.choice) {
-          updates["players.player1.choice"] = "rock";
-          updates["players.player2.choice"] = "rock";
-          winnerMessage += "Tidak ada yang memilih, hasilnya Seri!";
-        } else if (!p2.choice) {
-          updates["players.player2.choice"] = "none";
-          winnerMessage += `${p2.name} tidak memilih, ${p1.name} menang!`;
-        } else if (!p1.choice) {
-          updates["players.player1.choice"] = "none";
-          winnerMessage += `${p1.name} tidak memilih, ${p2.name} menang!`;
-        }
-        bkg_showToast(winnerMessage, "info");
-        await updateDoc(gameRef, updates);
-      }
-      const determineWinner = (c1, c2) =>
-        c1 === "none"
-          ? "player2"
-          : c2 === "none"
-          ? "player1"
-          : c1 === c2
-          ? "draw"
-          : (c1 === "rock" && c2 === "scissors") ||
-            (c1 === "paper" && c2 === "rock") ||
-            (c1 === "scissors" && c2 === "paper")
-          ? "player1"
-          : "player2";
-      ["rock", "paper", "scissors"].forEach((choice) =>
-        document
-          .getElementById(choice)
-          .addEventListener("click", () => bkg_handlePlayerChoice(choice))
-      );
-      const bkg_handlePlayerChoice = async (choice) => {
-        if (!bkg_playerNumber || !bkg_currentRoomId) return;
-        await updateDoc(doc(bkg_gamesCollection, bkg_currentRoomId), {
-          [`players.${bkg_playerNumber}.choice`]: choice,
-        });
-      };
-      bkg_playAgainBtn.addEventListener("click", async () => {
-        if (!bkg_playerNumber || !bkg_currentRoomId) return;
-        await updateDoc(doc(bkg_gamesCollection, bkg_currentRoomId), {
-          [`players.${bkg_playerNumber}.wantsToPlayAgain`]: true,
-        });
-      });
-      async function resetForNewRound() {
-        if (!bkg_currentRoomId) return;
-        await updateDoc(doc(bkg_gamesCollection, bkg_currentRoomId), {
-          "players.player1.choice": null,
-          "players.player2.choice": null,
-          "players.player1.wantsToPlayAgain": false,
-          "players.player2.wantsToPlayAgain": false,
-        });
-      }
-      async function checkForSavedSession() {
-        const roomId = sessionStorage.getItem("bkg_roomId");
-        const userId = sessionStorage.getItem("bkg_userId");
-        if (!roomId || !userId || userId !== bkg_currentUserId) return;
-        const gameRef = doc(bkg_gamesCollection, roomId);
-        const gameDoc = await getDoc(gameRef);
-        if (gameDoc.exists()) {
-          const players = gameDoc.data().players;
-          const player =
-            players.player1?.uid === userId ? players.player1 : players.player2;
-          if (player) {
-            if (player.status === "offline")
-              await updateDoc(gameRef, {
-                [`players.${
-                  players.player1?.uid === userId ? "player1" : "player2"
-                }.status`]: "online",
-              });
-            bkg_currentPlayerName = player.name;
-            bkg_joinRoom(roomId);
-            bkg_showToast("Berhasil terhubung kembali ke room!", "success");
-          }
-        } else {
-          clearSession();
-        }
-      }
-      onAuthStateChanged(bkg_auth, (user) => {
-        if (user) {
-          bkg_currentUserId = user.uid;
-          checkForSavedSession();
-        }
-      });
-      signInAnonymously(bkg_auth).catch((err) =>
-        console.error("BKG Auth Error:", err)
-      );
 
-      // Default app view
-      switchMainApp("bkg");
+          if (p2) {
+            if (p1.choice && p2.choice) {
+              bkg_choices.classList.add("hidden");
+              bkg_playAgainContainer.classList.remove("hidden-view");
+
+              if (
+                !gameState.choicesProcessed &&
+                bkg_playerNumber === "player1"
+              ) {
+                const winner = determineWinner(p1.choice, p2.choice);
+                updateScoreAndState(winner);
+              }
+              const winner = determineWinner(p1.choice, p2.choice);
+              bkg_resultMessage.textContent =
+                winner === "draw"
+                  ? "Hasilnya Seri!"
+                  : winner === bkg_playerNumber
+                  ? "Kamu Menang! 🎉"
+                  : "Kamu Kalah! 😞";
+
+              const me = playersData[bkg_playerNumber];
+              bkg_playAgainBtn.disabled = me.wantsToPlayAgain;
+              bkg_playAgainBtn.textContent = me.wantsToPlayAgain
+                ? "Menunggu Lawan..."
+                : "Main Lagi";
+              bkg_statusMessage.textContent = me.wantsToPlayAgain
+                ? "Menunggu persetujuan lawan..."
+                : opponent?.wantsToPlayAgain
+                ? "Lawan menantangmu! Klik 'Main Lagi'."
+                : "Klik 'Main Lagi' untuk rematch!";
+
+              const myOpponent =
+                playersData[
+                  bkg_playerNumber === "player1" ? "player2" : "player1"
+                ];
+              bkg_resetScoreBtn.classList.remove(
+                "btn-secondary",
+                "btn-success"
+              );
+              if (me.wantsToReset) {
+                bkg_resetScoreBtn.textContent = "Menunggu...";
+                bkg_resetScoreBtn.disabled = true;
+                bkg_resetScoreBtn.classList.add("btn-secondary");
+              } else if (myOpponent?.wantsToReset) {
+                bkg_resetScoreBtn.textContent = "Setujui";
+                bkg_resetScoreBtn.disabled = false;
+                bkg_resetScoreBtn.classList.add("btn-success");
+              } else {
+                bkg_resetScoreBtn.textContent = "Reset Skor";
+                bkg_resetScoreBtn.disabled = false;
+                bkg_resetScoreBtn.classList.add("btn-secondary");
+              }
+
+              if (
+                p1.wantsToReset &&
+                p2.wantsToReset &&
+                bkg_playerNumber === "player1"
+              )
+                resetScores();
+              if (
+                p1.wantsToPlayAgain &&
+                p2.wantsToPlayAgain &&
+                bkg_playerNumber === "player1"
+              )
+                resetForNewRound();
+            } else {
+              bkg_choices.classList.remove("hidden");
+              bkg_playAgainContainer.classList.add("hidden-view");
+              bkg_resultMessage.textContent = "";
+              let time = 30;
+              bkg_statusMessage.textContent = `Pilih jagoanmu! Waktu: ${time}s`;
+              countdownInterval = setInterval(() => {
+                time--;
+                bkg_statusMessage.textContent = `Pilih jagoanmu! Waktu: ${time}s`;
+                if (time <= 0) clearInterval(countdownInterval);
+              }, 1000);
+              afkTimeout = setTimeout(() => handleAfkTimeout(p1, p2), 30000);
+            }
+          } else {
+            bkg_statusMessage.textContent =
+              "Bagikan kode untuk mengundang temanmu!";
+            bkg_choices.classList.add("hidden");
+            bkg_playAgainContainer.classList.add("hidden-view");
+            bkg_resultMessage.textContent = "";
+          }
+        }
+
+        async function handleAfkTimeout(p1, p2) {
+          const gameRef = doc(bkg_gamesCollection, bkg_currentRoomId),
+            updates = {};
+          let winnerMessage = "Waktu habis! ";
+          if (!p1.choice && !p2.choice) {
+            updates["players.player1.choice"] = "rock";
+            updates["players.player2.choice"] = "rock";
+            winnerMessage += "Tidak ada yang memilih, hasilnya Seri!";
+          } else if (!p2.choice) {
+            updates["players.player2.choice"] = "none";
+            winnerMessage += `${p2.name} tidak memilih, ${p1.name} menang!`;
+          } else if (!p1.choice) {
+            updates["players.player1.choice"] = "none";
+            winnerMessage += `${p1.name} tidak memilih, ${p2.name} menang!`;
+          }
+          bkg_showToast(winnerMessage, "info");
+          await updateDoc(gameRef, updates);
+        }
+
+        const determineWinner = (c1, c2) =>
+          c1 === "none"
+            ? "player2"
+            : c2 === "none"
+            ? "player1"
+            : c1 === c2
+            ? "draw"
+            : (c1 === "rock" && c2 === "scissors") ||
+              (c1 === "paper" && c2 === "rock") ||
+              (c1 === "scissors" && c2 === "paper")
+            ? "player1"
+            : "player2";
+
+        ["rock", "paper", "scissors"].forEach((choice) =>
+          document
+            .getElementById(choice)
+            .addEventListener("click", () => bkg_handlePlayerChoice(choice))
+        );
+
+        const bkg_handlePlayerChoice = async (choice) => {
+          if (!bkg_playerNumber || !bkg_currentRoomId) return;
+          await updateDoc(doc(bkg_gamesCollection, bkg_currentRoomId), {
+            [`players.${bkg_playerNumber}.choice`]: choice,
+          });
+        };
+
+        bkg_playAgainBtn.addEventListener("click", async () => {
+          if (!bkg_playerNumber || !bkg_currentRoomId) return;
+          await updateDoc(doc(bkg_gamesCollection, bkg_currentRoomId), {
+            [`players.${bkg_playerNumber}.wantsToPlayAgain`]: true,
+          });
+        });
+
+        bkg_resetScoreBtn.addEventListener("click", async () => {
+          if (!bkg_playerNumber || !bkg_currentRoomId) return;
+          await updateDoc(doc(bkg_gamesCollection, bkg_currentRoomId), {
+            [`players.${bkg_playerNumber}.wantsToReset`]: true,
+          });
+        });
+
+        async function resetScores() {
+          if (!bkg_currentRoomId) return;
+          await updateDoc(doc(bkg_gamesCollection, bkg_currentRoomId), {
+            "players.player1.score": 0,
+            "players.player2.score": 0,
+            "players.player1.wantsToReset": false,
+            "players.player2.wantsToReset": false,
+          });
+        }
+
+        async function resetForNewRound() {
+          if (!bkg_currentRoomId) return;
+          await updateDoc(doc(bkg_gamesCollection, bkg_currentRoomId), {
+            "players.player1.choice": null,
+            "players.player2.choice": null,
+            "players.player1.wantsToPlayAgain": false,
+            "players.player2.wantsToPlayAgain": false,
+            choicesProcessed: false,
+          });
+        }
+
+        async function checkForSavedSession() {
+          const roomId = sessionStorage.getItem("bkg_roomId");
+          const userId = sessionStorage.getItem("bkg_userId");
+          if (!roomId || !userId || userId !== bkg_currentUserId) return;
+          const gameRef = doc(bkg_gamesCollection, roomId);
+          const gameDoc = await getDoc(gameRef);
+          if (gameDoc.exists()) {
+            const players = gameDoc.data().players;
+            const player =
+              players.player1?.uid === userId
+                ? players.player1
+                : players.player2;
+            if (player) {
+              if (player.status === "offline")
+                await updateDoc(gameRef, {
+                  [`players.${
+                    players.player1?.uid === userId ? "player1" : "player2"
+                  }.status`]: "online",
+                });
+              bkg_currentPlayerName = player.name;
+              bkg_joinRoom(roomId);
+              bkg_showToast("Berhasil terhubung kembali ke room!", "success");
+            }
+          } else {
+            clearSession();
+          }
+        }
+
+        onAuthStateChanged(bkg_auth, (user) => {
+          if (user) {
+            bkg_currentUserId = user.uid;
+            checkForSavedSession();
+          }
+        });
+        signInAnonymously(bkg_auth).catch((err) =>
+          console.error("BKG Auth Error:", err)
+        );
+
+        switchMainApp("bkg");
+      });
     </script>
   </body>
 </html>
