@@ -132,6 +132,107 @@
       #chat-messages p {
         max-width: 85%;
       }
+      .chat-bubble {
+        position: absolute;
+        background-color: #4f46e5;
+        color: white;
+        padding: 10px 18px;
+        border-radius: 18px;
+        font-size: 1rem;
+        font-weight: 500;
+        white-space: nowrap;
+        max-width: 85%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        top: 4.5rem;
+        right: 1rem;
+        opacity: 0;
+        transform: scale(0.9) translateY(10px);
+        transition: all 0.3s ease-out;
+        pointer-events: none;
+        z-index: 20;
+      }
+      .chat-bubble.show {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+      .chat-bubble::after {
+        content: "";
+        position: absolute;
+        bottom: 100%;
+        right: 1.5rem;
+        border-width: 8px;
+        border-style: solid;
+        border-color: transparent transparent #4f46e5 transparent;
+      }
+
+      /* CSS UNTUK CUSTOM SELECT */
+      .custom-select-container {
+        position: relative;
+        width: 100%;
+        margin-bottom: 1rem;
+      }
+      .custom-select-trigger {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem 1rem;
+        background-color: #374151;
+        border: 2px solid #4b5563;
+        border-radius: 0.5rem;
+        color: white;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+      }
+      .custom-select-trigger:hover {
+        border-color: #6366f1;
+      }
+      .custom-select-trigger .selected-option {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+      .custom-select-trigger .arrow {
+        transition: transform 0.3s ease;
+      }
+      .custom-select-container.open .arrow {
+        transform: rotate(180deg);
+      }
+      .custom-options {
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 0;
+        right: 0;
+        background-color: #374151;
+        border: 1px solid #4b5563;
+        border-radius: 0.5rem;
+        z-index: 50;
+        overflow: hidden;
+        opacity: 0;
+        transform: translateY(-10px);
+        pointer-events: none;
+        transition: all 0.3s ease-out;
+      }
+      .custom-select-container.open .custom-options {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+      }
+      .custom-option {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+      }
+      .custom-option:hover,
+      .custom-option.selected {
+        background-color: #4f46e5;
+      }
+      .custom-option:not(:last-child) {
+        border-bottom: 1px solid #4b5563;
+      }
     </style>
   </head>
   <body class="min-h-screen p-4 flex flex-col items-center">
@@ -158,20 +259,107 @@
       </div>
 
       <div id="generatorApp" class="app-content">
-        <div class="mb-4">
-          <label for="generatorType" class="sr-only"
-            >Pilih Jenis Generator</label
-          >
-          <select
-            id="generatorType"
-            class="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            <option value="text-to-garbled">Teks Asli → Teks Aneh</option>
-            <option value="garbled-to-text">Teks Aneh → Teks Asli</option>
-            <option value="text-to-morse">Teks → Kode Morse</option>
-            <option value="morse-to-text">Kode Morse → Teks</option>
-          </select>
+        <div id="custom-select" class="custom-select-container">
+          <div class="custom-select-trigger">
+            <div class="selected-option"></div>
+            <div class="arrow">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </div>
+          </div>
+          <div class="custom-options">
+            <div class="custom-option" data-value="text-to-garbled">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="m21 15-4-4-4 4" />
+                <path
+                  d="M17 11v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3"
+                />
+                <path d="m3 12 4 4 4-4" />
+                <path d="M7 12V3" />
+              </svg>
+              <span>Teks Asli → Teks Aneh</span>
+            </div>
+            <div class="custom-option" data-value="garbled-to-text">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="m21 15-4-4-4 4" />
+                <path
+                  d="M17 11v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3"
+                />
+                <path d="m3 12 4 4 4-4" />
+                <path d="M7 12V3" />
+              </svg>
+              <span>Teks Aneh → Teks Asli</span>
+            </div>
+            <div class="custom-option" data-value="text-to-morse">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 8v4" />
+                <path d="M12 16h.01" />
+              </svg>
+              <span>Teks → Kode Morse</span>
+            </div>
+            <div class="custom-option" data-value="morse-to-text">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 8v4" />
+                <path d="M12 16h.01" />
+              </svg>
+              <span>Kode Morse → Teks</span>
+            </div>
+          </div>
         </div>
+
         <div
           class="translate-container grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 items-start"
         >
@@ -186,11 +374,11 @@
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
+                    stroke-width="2"
                   >
                     <path
                       stroke-linecap="round"
                       stroke-linejoin="round"
-                      stroke-width="2"
                       d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
                     />
                   </svg>
@@ -230,11 +418,11 @@
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
+                stroke-width="2"
               >
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  stroke-width="2"
                   d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
                 />
               </svg>
@@ -252,11 +440,11 @@
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
+                    stroke-width="2"
                   >
                     <path
                       stroke-linecap="round"
                       stroke-linejoin="round"
-                      stroke-width="2"
                       d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
                     />
                   </svg>
@@ -295,7 +483,8 @@
               type="text"
               placeholder="Masukkan Nama Anda"
               class="w-full bg-gray-700 text-white placeholder-gray-400 p-3 rounded-lg mb-4 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            /><button
+            />
+            <button
               id="create-room-btn"
               class="btn btn-primary w-full py-3 rounded-lg font-semibold text-lg mb-4"
             >
@@ -311,7 +500,8 @@
               type="text"
               placeholder="Masukkan Kode Room"
               class="w-full bg-gray-700 text-white placeholder-gray-400 p-3 rounded-lg mb-4 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            /><button
+            />
+            <button
               id="join-room-btn"
               class="btn btn-secondary w-full py-3 rounded-lg font-semibold text-lg"
             >
@@ -345,19 +535,18 @@
             </div>
             <div class="hidden sm:block order-3" style="width: 110px"></div>
           </div>
-
           <p
             id="status-message"
             class="text-indigo-300 text-lg mb-4 mt-6 sm:mt-0"
           >
             Menginisialisasi permainan...
           </p>
-
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 mb-6">
             <div
               id="p1-card"
-              class="bg-gray-800 p-4 md:p-6 rounded-xl shadow-lg border-2 border-transparent"
+              class="relative bg-gray-800 p-4 md:p-6 rounded-xl shadow-lg border-2 border-transparent"
             >
+              <div id="p1-chat-bubble" class="chat-bubble"></div>
               <h2 id="player1-name" class="text-xl font-semibold mb-4 truncate">
                 Pemain 1
               </h2>
@@ -371,8 +560,9 @@
             </div>
             <div
               id="p2-card"
-              class="bg-gray-800 p-4 md:p-6 rounded-xl shadow-lg border-2 border-transparent"
+              class="relative bg-gray-800 p-4 md:p-6 rounded-xl shadow-lg border-2 border-transparent"
             >
+              <div id="p2-chat-bubble" class="chat-bubble"></div>
               <h2 id="player2-name" class="text-xl font-semibold mb-4 truncate">
                 Pemain 2
               </h2>
@@ -418,7 +608,6 @@
             id="play-again-btn"
             class="hidden-view btn btn-primary font-bold py-3 px-8 rounded-lg text-xl"
           ></button>
-
           <div id="chat-container" class="mt-8 border-t-2 border-gray-700 pt-4">
             <h3 class="text-lg font-semibold mb-2 text-center">Chat Room</h3>
             <div
@@ -429,7 +618,7 @@
               <input
                 type="text"
                 id="chat-input"
-                class="flex-grow bg-gray-700 text-white p-2 rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                class="flex-1 min-w-0 bg-gray-700 text-white p-2 rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 placeholder="Ketik pesan..."
               />
               <button
@@ -474,46 +663,40 @@
         remove,
       } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 
-      // --- GLOBAL APP SWITCHER LOGIC ---
-      const mainTabGenerator = document.getElementById("mainTabGenerator"),
-        mainTabBKG = document.getElementById("mainTabBKG"),
-        generatorApp = document.getElementById("generatorApp"),
-        bkgApp = document.getElementById("bkgApp");
-      function switchMainApp(e) {
-        generatorApp.classList.remove("active"),
-          bkgApp.classList.remove("active"),
-          mainTabGenerator.classList.remove("active"),
-          mainTabBKG.classList.remove("active"),
-          "generator" === e
-            ? (generatorApp.classList.add("active"),
-              mainTabGenerator.classList.add("active"))
-            : "bkg" === e &&
-              (bkgApp.classList.add("active"),
-              mainTabBKG.classList.add("active"));
+      // --- GLOBAL APP LOGIC ---
+      const mainTabGenerator = document.getElementById("mainTabGenerator");
+      const mainTabBKG = document.getElementById("mainTabBKG");
+      const generatorApp = document.getElementById("generatorApp");
+      const bkgApp = document.getElementById("bkgApp");
+
+      function switchMainApp(app) {
+        generatorApp.classList.toggle("active", app === "generator");
+        bkgApp.classList.toggle("active", app === "bkg");
+        mainTabGenerator.classList.toggle("active", app === "generator");
+        mainTabBKG.classList.toggle("active", app === "bkg");
       }
       mainTabGenerator.addEventListener("click", () =>
         switchMainApp("generator")
-      ),
-        mainTabBKG.addEventListener("click", () => switchMainApp("bkg")),
-        switchMainApp("bkg");
+      );
+      mainTabBKG.addEventListener("click", () => switchMainApp("bkg"));
 
       // --- GENERATOR APP LOGIC ---
-      const generatorType = document.getElementById("generatorType"),
-        inputText = document.getElementById("inputText"),
-        outputText = document.getElementById("outputText"),
-        swapBtn = document.getElementById("swap-btn"),
-        inputLangLabel = document.getElementById("input-lang-label"),
-        outputLangLabel = document.getElementById("output-lang-label"),
-        inputCopyBtn = document.getElementById("input-copy-btn"),
-        outputCopyBtn = document.getElementById("output-copy-btn"),
-        inputClearBtn = document.getElementById("input-clear-btn"),
-        ENCRYPTION_MAP = {},
-        DECRYPTION_MAP = {},
-        alphabet = "abcdefghijklmnopqrstuvwxyz";
-      for (let e = 0; e < alphabet.length; e++) {
-        const t = alphabet[e],
-          a = alphabet[alphabet.length - 1 - e];
-        (ENCRYPTION_MAP[t] = a), (DECRYPTION_MAP[a] = t);
+      const inputText = document.getElementById("inputText");
+      const outputText = document.getElementById("outputText");
+      const swapBtn = document.getElementById("swap-btn");
+      const inputLangLabel = document.getElementById("input-lang-label");
+      const outputLangLabel = document.getElementById("output-lang-label");
+      const inputCopyBtn = document.getElementById("input-copy-btn");
+      const outputCopyBtn = document.getElementById("output-copy-btn");
+      const inputClearBtn = document.getElementById("input-clear-btn");
+      const ENCRYPTION_MAP = {},
+        DECRYPTION_MAP = {};
+      const alphabet = "abcdefghijklmnopqrstuvwxyz";
+      for (let i = 0; i < alphabet.length; i++) {
+        const char = alphabet[i];
+        const reversedChar = alphabet[alphabet.length - 1 - i];
+        ENCRYPTION_MAP[char] = reversedChar;
+        DECRYPTION_MAP[reversedChar] = char;
       }
       const MORSE_CODE_MAP = {
         A: "•-",
@@ -554,89 +737,114 @@
         9: "----•",
       };
       const REVERSE_MORSE_MAP = Object.fromEntries(
-          Object.entries(MORSE_CODE_MAP).map((e) => e.reverse())
-        ),
-        garbledFn = (e) =>
-          e
+        Object.entries(MORSE_CODE_MAP).map((a) => a.reverse())
+      );
+      const translationFunctions = {
+        "text-to-garbled": (text) =>
+          text
             .split("")
-            .map((e) =>
-              e >= "a" && e <= "z"
-                ? ENCRYPTION_MAP[e]
-                : e >= "A" && e <= "Z"
-                ? ENCRYPTION_MAP[e.toLowerCase()].toUpperCase()
-                : e
+            .map((char) =>
+              char >= "a" && char <= "z"
+                ? ENCRYPTION_MAP[char]
+                : char >= "A" && char <= "Z"
+                ? ENCRYPTION_MAP[char.toLowerCase()].toUpperCase()
+                : char
             )
             .join(""),
-        ungarbledFn = (e) =>
-          e
+        "garbled-to-text": (text) =>
+          text
             .split("")
-            .map((e) =>
-              e >= "a" && e <= "z"
-                ? DECRYPTION_MAP[e]
-                : e >= "A" && e <= "Z"
-                ? DECRYPTION_MAP[e.toLowerCase()].toUpperCase()
-                : e
+            .map((char) =>
+              char >= "a" && char <= "z"
+                ? DECRYPTION_MAP[char]
+                : char >= "A" && char <= "Z"
+                ? DECRYPTION_MAP[char.toLowerCase()].toUpperCase()
+                : char
             )
-            .join("");
-      const textToMorseFn = (e) =>
-          e
+            .join(""),
+        "text-to-morse": (text) =>
+          text
             .toUpperCase()
             .split("")
-            .map((e) => MORSE_CODE_MAP[e] || (" " === e ? "/" : ""))
+            .map((char) => MORSE_CODE_MAP[char] || (char === " " ? "/" : ""))
             .join("   "),
-        morseToTextFn = (e) =>
-          e
+        "morse-to-text": (text) =>
+          text
             .trim()
             .split(/[\s]{2,}/)
-            .map((e) => REVERSE_MORSE_MAP[e] || ("/" === e ? " " : ""))
-            .join("");
+            .map((code) => REVERSE_MORSE_MAP[code] || (code === "/" ? " " : ""))
+            .join(""),
+      };
+      let generatorType = "text-to-garbled";
+
       function translate() {
-        const e = generatorType.value,
-          t = inputText.value,
-          a = translationFunctions[e];
-        a && (outputText.value = a(t));
+        const text = inputText.value;
+        const func = translationFunctions[generatorType];
+        if (func) outputText.value = func(text);
       }
       function updateLabels() {
-        const [e, t] = generatorType.value.split("-to-");
-        (inputLangLabel.textContent = e
+        const [from, to] = generatorType.split("-to-");
+        inputLangLabel.textContent = from
           .replace(/-/g, " ")
-          .replace(/\b\w/g, (e) => e.toUpperCase())),
-          (outputLangLabel.textContent = t
-            .replace(/-/g, " ")
-            .replace(/\b\w/g, (e) => e.toUpperCase()));
+          .replace(/\b\w/g, (c) => c.toUpperCase());
+        outputLangLabel.textContent = to
+          .replace(/-/g, " ")
+          .replace(/\b\w/g, (c) => c.toUpperCase());
       }
-      const translationFunctions = {
-        "text-to-garbled": garbledFn,
-        "garbled-to-text": ungarbledFn,
-        "text-to-morse": textToMorseFn,
-        "morse-to-text": morseToTextFn,
-      };
-      inputText.addEventListener("input", translate),
-        generatorType.addEventListener("change", () => {
-          updateLabels(), translate();
-        }),
-        swapBtn.addEventListener("click", () => {
-          [inputText.value, outputText.value] = [
-            outputText.value,
-            inputText.value,
-          ];
-          const [e, t] = generatorType.value.split("-to-"),
-            a = `${t}-to-${e}`;
-          Array.from(generatorType.options).some((e) => e.value === a) &&
-            (generatorType.value = a),
-            updateLabels(),
-            translate();
-        }),
-        inputCopyBtn.addEventListener("click", () =>
-          navigator.clipboard.writeText(inputText.value)
-        ),
-        outputCopyBtn.addEventListener("click", () =>
-          navigator.clipboard.writeText(outputText.value)
-        ),
-        inputClearBtn.addEventListener("click", () => {
-          (inputText.value = ""), (outputText.value = "");
-        }),
+
+      const customSelect = document.getElementById("custom-select");
+      const customSelectTrigger = customSelect.querySelector(
+        ".custom-select-trigger"
+      );
+      const selectedOptionEl = customSelect.querySelector(".selected-option");
+      const options = customSelect.querySelectorAll(".custom-option");
+
+      function updateSelectedOption(optionEl) {
+        options.forEach((opt) => opt.classList.remove("selected"));
+        optionEl.classList.add("selected");
+        selectedOptionEl.innerHTML = optionEl.innerHTML;
+        generatorType = optionEl.dataset.value;
+        customSelect.classList.remove("open");
         updateLabels();
+        translate();
+      }
+
+      customSelectTrigger.addEventListener("click", () =>
+        customSelect.classList.toggle("open")
+      );
+      options.forEach((option) =>
+        option.addEventListener("click", () => updateSelectedOption(option))
+      );
+      document.addEventListener("click", (e) => {
+        if (!customSelect.contains(e.target))
+          customSelect.classList.remove("open");
+      });
+
+      inputText.addEventListener("input", translate);
+      swapBtn.addEventListener("click", () => {
+        [inputText.value, outputText.value] = [
+          outputText.value,
+          inputText.value,
+        ];
+        const [from, to] = generatorType.split("-to-");
+        const newType = `${to}-to-${from}`;
+        const newOption = Array.from(options).find(
+          (opt) => opt.dataset.value === newType
+        );
+        if (newOption) updateSelectedOption(newOption);
+      });
+      inputCopyBtn.addEventListener("click", () =>
+        navigator.clipboard.writeText(inputText.value)
+      );
+      outputCopyBtn.addEventListener("click", () =>
+        navigator.clipboard.writeText(outputText.value)
+      );
+      inputClearBtn.addEventListener("click", () => {
+        inputText.value = "";
+        outputText.value = "";
+      });
+
+      updateSelectedOption(options[0]);
 
       // --- BATU GUNTING KERTAS APP LOGIC ---
       const bkg_firebaseConfig = {
@@ -649,14 +857,11 @@
         databaseURL:
           "https://realtime-database-99f23-default-rtdb.firebaseio.com/",
       };
-
       const bkg_app = initializeApp(bkg_firebaseConfig, "BKG_APP");
       const bkg_auth = getAuth(bkg_app);
       const bkg_db = getFirestore(bkg_app);
       const bkg_rtdb = getDatabase(bkg_app);
       const bkg_gamesCollection = collection(bkg_db, "rps-rooms");
-
-      // PERUBAHAN: Menambah elemen kartu pemain
       const bkg_player1Card = document.getElementById("p1-card");
       const bkg_player2Card = document.getElementById("p2-card");
       const bkg_lobbyView = document.getElementById("lobby-view"),
@@ -681,6 +886,7 @@
       const chatMessages = document.getElementById("chat-messages"),
         chatInput = document.getElementById("chat-input"),
         chatSendBtn = document.getElementById("chat-send-btn");
+
       let bkg_currentUserId = null,
         bkg_currentPlayerName = "",
         bkg_currentRoomId = null,
@@ -691,332 +897,356 @@
         countdownInterval = null,
         rtdbListenerUnsubscribe = null,
         chatUnsubscribe = null;
+      let chatBubbleTimeouts = {};
+      let playersData = {};
 
       const bkg_showToast = (message, type = "info") => {
-        clearTimeout(bkg_toastTimeout),
-          (bkg_toast.textContent = message),
-          (bkg_toast.className = `toast-${type}`),
-          bkg_toast.classList.add("show"),
-          (bkg_toastTimeout = setTimeout(() => {
-            bkg_toast.classList.remove("show");
-          }, 4e3));
+        clearTimeout(bkg_toastTimeout);
+        bkg_toast.textContent = message;
+        bkg_toast.className = `toast-${type}`;
+        bkg_toast.classList.add("show");
+        bkg_toastTimeout = setTimeout(
+          () => bkg_toast.classList.remove("show"),
+          4000
+        );
       };
       const clearSession = () => {
-        sessionStorage.removeItem("bkg_roomId"),
-          sessionStorage.removeItem("bkg_userId");
+        sessionStorage.removeItem("bkg_roomId");
+        sessionStorage.removeItem("bkg_userId");
       };
-      const bkg_switchView = (e) => {
-        if ("game" === e)
-          bkg_lobbyView.classList.add("hidden-view"),
-            bkg_gameView.classList.remove("hidden-view");
-        else {
-          bkg_gameView.classList.add("hidden-view"),
-            bkg_lobbyView.classList.remove("hidden-view"),
-            bkg_unsubscribeGame && bkg_unsubscribeGame(),
-            rtdbListenerUnsubscribe && rtdbListenerUnsubscribe(),
-            chatUnsubscribe && chatUnsubscribe(),
-            clearSession(),
-            bkg_resetGameState();
+      const bkg_switchView = (view) => {
+        bkg_gameView.classList.toggle("hidden-view", view !== "game");
+        bkg_lobbyView.classList.toggle("hidden-view", view === "game");
+        if (view !== "game") {
+          if (bkg_unsubscribeGame) bkg_unsubscribeGame();
+          if (rtdbListenerUnsubscribe) rtdbListenerUnsubscribe();
+          if (chatUnsubscribe) chatUnsubscribe();
+          clearSession();
+          bkg_resetGameState();
         }
       };
       const bkg_resetGameState = () => {
-        (bkg_currentRoomId = null),
-          (bkg_playerNumber = null),
-          (bkg_unsubscribeGame = null),
-          (rtdbListenerUnsubscribe = null),
-          (chatUnsubscribe = null),
-          (bkg_lobbyError.textContent = ""),
-          (bkg_roomCodeInput.value = ""),
-          clearTimeout(afkTimeout),
-          clearInterval(countdownInterval);
+        bkg_currentRoomId = null;
+        bkg_playerNumber = null;
+        bkg_unsubscribeGame = null;
+        rtdbListenerUnsubscribe = null;
+        chatUnsubscribe = null;
+        bkg_lobbyError.textContent = "";
+        bkg_roomCodeInput.value = "";
+        clearTimeout(afkTimeout);
+        clearInterval(countdownInterval);
       };
       bkg_createRoomBtn.addEventListener("click", async () => {
-        const e = bkg_playerNameInput.value.trim();
-        if (!e)
-          return (
-            (bkg_lobbyError.textContent = "Nama tidak boleh kosong."), void 0
-          );
-        bkg_currentPlayerName = e;
-        const t = Math.random().toString(36).substring(2, 7).toUpperCase(),
-          a = doc(bkg_gamesCollection, t);
-        await setDoc(a, {
+        const name = bkg_playerNameInput.value.trim();
+        if (!name) return bkg_showToast("Nama tidak boleh kosong.", "error");
+        bkg_currentPlayerName = name;
+        const roomId = Math.random().toString(36).substring(2, 7).toUpperCase();
+        await setDoc(doc(bkg_gamesCollection, roomId), {
           players: {
             player1: {
               uid: bkg_currentUserId,
-              name: bkg_currentPlayerName,
+              name,
               choice: null,
-              wantsToPlayAgain: !1,
+              wantsToPlayAgain: false,
               status: "online",
             },
             player2: null,
           },
-          createdAt: new Date(),
-        }),
-          bkg_joinRoom(t);
+          createdAt: serverTimestamp(),
+        });
+        bkg_joinRoom(roomId);
       });
       bkg_joinRoomBtn.addEventListener("click", async () => {
-        const e = bkg_playerNameInput.value.trim();
-        if (!e)
-          return (
-            (bkg_lobbyError.textContent = "Nama tidak boleh kosong."), void 0
-          );
-        bkg_currentPlayerName = e;
-        const t = bkg_roomCodeInput.value.trim().toUpperCase();
-        if (!t)
-          return (
-            (bkg_lobbyError.textContent = "Kode room tidak boleh kosong."),
-            void 0
-          );
-        const a = doc(bkg_gamesCollection, t),
-          o = await getDoc(a);
-        o.exists()
-          ? o.data().players.player2
-            ? (bkg_lobbyError.textContent = "Room ini sudah penuh.")
-            : (await updateDoc(a, {
-                "players.player2": {
-                  uid: bkg_currentUserId,
-                  name: bkg_currentPlayerName,
-                  choice: null,
-                  wantsToPlayAgain: !1,
-                  status: "online",
-                },
-              }),
-              bkg_joinRoom(t))
-          : (bkg_lobbyError.textContent = "Room tidak ditemukan.");
+        const name = bkg_playerNameInput.value.trim();
+        if (!name) return bkg_showToast("Nama tidak boleh kosong.", "error");
+        bkg_currentPlayerName = name;
+        const roomId = bkg_roomCodeInput.value.trim().toUpperCase();
+        if (!roomId)
+          return bkg_showToast("Kode room tidak boleh kosong.", "error");
+        const gameRef = doc(bkg_gamesCollection, roomId);
+        const gameDoc = await getDoc(gameRef);
+        if (gameDoc.exists()) {
+          if (gameDoc.data().players.player2)
+            bkg_showToast("Room ini sudah penuh.", "error");
+          else {
+            await updateDoc(gameRef, {
+              "players.player2": {
+                uid: bkg_currentUserId,
+                name,
+                choice: null,
+                wantsToPlayAgain: false,
+                status: "online",
+              },
+            });
+            bkg_joinRoom(roomId);
+          }
+        } else {
+          bkg_showToast("Room tidak ditemukan.", "error");
+        }
       });
-      const bkg_joinRoom = (e) => {
-        (bkg_currentRoomId = e),
-          bkg_switchView("game"),
-          (bkg_roomCodeDisplay.textContent = e);
-        const t = ref(bkg_rtdb, `/status/${e}/${bkg_currentUserId}`);
-        onDisconnect(t).remove(),
-          set(t, !0),
-          sessionStorage.setItem("bkg_roomId", e),
-          sessionStorage.setItem("bkg_userId", bkg_currentUserId),
-          bkg_listenToGameUpdates(e);
+      const bkg_joinRoom = (roomId) => {
+        bkg_currentRoomId = roomId;
+        bkg_switchView("game");
+        bkg_roomCodeDisplay.textContent = roomId;
+        const presenceRef = ref(
+          bkg_rtdb,
+          `/status/${roomId}/${bkg_currentUserId}`
+        );
+        onDisconnect(presenceRef).remove();
+        set(presenceRef, true);
+        sessionStorage.setItem("bkg_roomId", roomId);
+        sessionStorage.setItem("bkg_userId", bkg_currentUserId);
+        bkg_listenToGameUpdates(roomId);
       };
       bkg_leaveRoomBtn.addEventListener("click", async () => {
         if (!bkg_currentRoomId || !bkg_playerNumber) return;
-        const e = ref(
-          bkg_rtdb,
-          `/status/${bkg_currentRoomId}/${bkg_currentUserId}`
+        remove(
+          ref(bkg_rtdb, `/status/${bkg_currentRoomId}/${bkg_currentUserId}`)
         );
-        remove(e);
-        const t = doc(bkg_gamesCollection, bkg_currentRoomId);
-        "player1" === bkg_playerNumber
-          ? await deleteDoc(t)
-          : await updateDoc(t, { "players.player2": null }),
-          bkg_switchView("lobby");
+        const gameRef = doc(bkg_gamesCollection, bkg_currentRoomId);
+        if (bkg_playerNumber === "player1") await deleteDoc(gameRef);
+        else await updateDoc(gameRef, { "players.player2": null });
+        bkg_switchView("lobby");
       });
       bkg_copyCodeBtn.addEventListener("click", () =>
         navigator.clipboard
           .writeText(bkg_currentRoomId)
           .then(() => bkg_showToast("Kode room disalin!", "success"))
       );
-      function bkg_listenToGameUpdates(e) {
-        const t = doc(bkg_gamesCollection, e);
-        bkg_unsubscribeGame = onSnapshot(t, (e) => {
-          if (e.exists()) {
-            const t = e.data();
-            bkg_updateUI(t);
-          } else
-            "player2" === bkg_playerNumber &&
-              (bkg_showToast("Room ditutup oleh host.", "error"),
-              setTimeout(() => bkg_switchView("lobby"), 3e3));
+      function bkg_listenToGameUpdates(roomId) {
+        bkg_unsubscribeGame = onSnapshot(
+          doc(bkg_gamesCollection, roomId),
+          (doc) => {
+            if (doc.exists()) bkg_updateUI(doc.data());
+            else if (bkg_playerNumber === "player2") {
+              bkg_showToast("Room ditutup oleh host.", "error");
+              setTimeout(() => bkg_switchView("lobby"), 3000);
+            }
+          }
+        );
+        rtdbListenerUnsubscribe = onValue(
+          ref(bkg_rtdb, `/status/${roomId}`),
+          (snapshot) => {
+            if (!bkg_currentRoomId) return;
+            handleDisconnects(snapshot.val() || {});
+          }
+        );
+        chatUnsubscribe = onSnapshot(
+          query(
+            collection(bkg_db, "rps-rooms", roomId, "messages"),
+            orderBy("timestamp", "asc")
+          ),
+          (snapshot) => {
+            updateChatBox(snapshot.docs);
+            snapshot.docChanges().forEach((change) => {
+              if (change.type === "added" && change.doc.data().timestamp)
+                showChatBubble(change.doc.data());
+            });
+          }
+        );
+      }
+      function updateChatBox(docs) {
+        chatMessages.innerHTML = "";
+        docs.forEach((doc) => {
+          const messageData = doc.data();
+          const messageEl = document.createElement("p");
+          const isMe = messageData.senderId === bkg_currentUserId;
+          messageEl.innerHTML = `<span class="font-bold ${
+            isMe ? "text-indigo-400" : "text-green-400"
+          }">${messageData.senderName}:</span> ${messageData.text}`;
+          messageEl.className = `w-full break-words p-2 rounded-lg ${
+            isMe
+              ? "bg-indigo-900/50 self-end text-right"
+              : "bg-gray-700/50 self-start text-left"
+          }`;
+          chatMessages.appendChild(messageEl);
         });
-        const a = ref(bkg_rtdb, `/status/${e}`);
-        rtdbListenerUnsubscribe = onValue(a, (e) => {
-          const t = e.val() || {};
-          handleDisconnects(t);
-        });
-        const o = collection(bkg_db, "rps-rooms", e, "messages"),
-          n = query(o, orderBy("timestamp", "asc"));
-        chatUnsubscribe = onSnapshot(n, (e) => {
-          (chatMessages.innerHTML = ""),
-            e.forEach((e) => {
-              const t = e.data(),
-                a = document.createElement("p"),
-                o = t.senderId === bkg_currentUserId;
-              (a.innerHTML = `<span class="font-bold ${
-                o ? "text-indigo-400" : "text-green-400"
-              }">${t.senderName}:</span> ${t.text}`),
-                (a.className = `w-full break-words p-2 rounded-lg ${
-                  o
-                    ? "bg-indigo-900/50 self-end text-right"
-                    : "bg-gray-700/50 self-start text-left"
-                }`),
-                chatMessages.appendChild(a);
-            }),
-            (chatMessages.scrollTop = chatMessages.scrollHeight);
-        });
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+      function showChatBubble(messageData) {
+        const p1_uid = playersData.player1?.uid;
+        const p2_uid = playersData.player2?.uid;
+        let bubbleId =
+          messageData.senderId === p1_uid
+            ? "p1-chat-bubble"
+            : messageData.senderId === p2_uid
+            ? "p2-chat-bubble"
+            : null;
+        if (!bubbleId) return;
+        const bubbleEl = document.getElementById(bubbleId);
+        if (!bubbleEl) return;
+        if (chatBubbleTimeouts[bubbleId])
+          clearTimeout(chatBubbleTimeouts[bubbleId]);
+        bubbleEl.textContent = messageData.text;
+        bubbleEl.classList.add("show");
+        chatBubbleTimeouts[bubbleId] = setTimeout(
+          () => bubbleEl.classList.remove("show"),
+          4000
+        );
       }
       const sendMessage = async () => {
-        const e = chatInput.value.trim();
-        if ("" === e || !bkg_currentRoomId) return;
-        const t = collection(
-          bkg_db,
-          "rps-rooms",
-          bkg_currentRoomId,
-          "messages"
-        );
+        const text = chatInput.value.trim();
+        if (text === "" || !bkg_currentRoomId) return;
         try {
-          await addDoc(t, {
-            text: e,
-            senderId: bkg_currentUserId,
-            senderName: bkg_currentPlayerName,
-            timestamp: serverTimestamp(),
-          }),
-            (chatInput.value = "");
-        } catch (e) {
-          console.error("Gagal mengirim pesan:", e),
-            bkg_showToast("Gagal mengirim pesan.", "error");
+          await addDoc(
+            collection(bkg_db, "rps-rooms", bkg_currentRoomId, "messages"),
+            {
+              text,
+              senderId: bkg_currentUserId,
+              senderName: bkg_currentPlayerName,
+              timestamp: serverTimestamp(),
+            }
+          );
+          chatInput.value = "";
+        } catch (error) {
+          console.error("Gagal mengirim pesan:", error);
+          bkg_showToast("Gagal mengirim pesan.", "error");
         }
       };
-      chatSendBtn.addEventListener("click", sendMessage),
-        chatInput.addEventListener("keydown", (e) => {
-          "Enter" === e.key && sendMessage();
-        });
-      async function handleDisconnects(e) {
-        const t = doc(bkg_db, "rps-rooms", bkg_currentRoomId),
-          a = await getDoc(t);
-        if (!a.exists()) return;
-        const { players: o } = a.data(),
-          n = o.player1,
-          r = o.player2;
-        n &&
-          !e[n.uid] &&
-          "online" === n.status &&
-          (await updateDoc(t, { "players.player1.status": "offline" })),
-          r &&
-            !e[r.uid] &&
-            "online" === r.status &&
-            (await updateDoc(t, { "players.player2.status": "offline" }));
+      chatSendBtn.addEventListener("click", sendMessage);
+      chatInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") sendMessage();
+      });
+      async function handleDisconnects(onlineUsers) {
+        if (!bkg_currentRoomId) return;
+        const gameRef = doc(bkg_db, "rps-rooms", bkg_currentRoomId);
+        const gameDoc = await getDoc(gameRef);
+        if (!gameDoc.exists()) return;
+        playersData = gameDoc.data().players;
+        const { player1: p1, player2: p2 } = playersData;
+        const updates = {};
+        if (
+          p1 &&
+          p1.uid !== bkg_currentUserId &&
+          !onlineUsers[p1.uid] &&
+          p1.status === "online"
+        )
+          updates["players.player1.status"] = "offline";
+        if (
+          p2 &&
+          p2.uid !== bkg_currentUserId &&
+          !onlineUsers[p2.uid] &&
+          p2.status === "online"
+        )
+          updates["players.player2.status"] = "offline";
+        if (Object.keys(updates).length > 0) await updateDoc(gameRef, updates);
       }
-
-      // PERUBAHAN: Menambahkan logika untuk highlight kartu pemain
       function bkg_updateUI(gameState) {
-        const { players } = gameState,
-          p1 = players.player1,
-          p2 = players.player2;
-        p1?.uid === bkg_currentUserId
-          ? (bkg_playerNumber = "player1")
-          : p2?.uid === bkg_currentUserId && (bkg_playerNumber = "player2");
-        if (!bkg_playerNumber || !players[bkg_playerNumber]) return;
-
-        bkg_player1Card.classList.remove("border-indigo-500");
-        bkg_player2Card.classList.remove("border-indigo-500");
-        bkg_player1Card.classList.add("border-transparent");
-        bkg_player2Card.classList.add("border-transparent");
-
-        if (bkg_playerNumber === "player1") {
-          bkg_player1Card.classList.add("border-indigo-500");
-          bkg_player1Card.classList.remove("border-transparent");
-        } else if (bkg_playerNumber === "player2") {
-          bkg_player2Card.classList.add("border-indigo-500");
-          bkg_player2Card.classList.remove("border-transparent");
+        playersData = gameState.players;
+        const { player1: p1, player2: p2 } = playersData;
+        bkg_playerNumber =
+          p1?.uid === bkg_currentUserId
+            ? "player1"
+            : p2?.uid === bkg_currentUserId
+            ? "player2"
+            : null;
+        if (!bkg_playerNumber || !playersData[bkg_playerNumber]) return;
+        bkg_player1Card.classList.toggle(
+          "border-indigo-500",
+          bkg_playerNumber === "player1"
+        );
+        bkg_player2Card.classList.toggle(
+          "border-indigo-500",
+          bkg_playerNumber === "player2"
+        );
+        const opponent =
+          playersData[bkg_playerNumber === "player1" ? "player2" : "player1"];
+        if (opponent && opponent.status === "offline") {
+          bkg_statusMessage.textContent = "Lawan telah keluar dari permainan.";
+          bkg_choices.classList.add("hidden");
+          bkg_playAgainBtn.classList.add("hidden-view");
+          bkg_resultMessage.textContent = "";
+          clearTimeout(afkTimeout);
+          clearInterval(countdownInterval);
+          return;
         }
-
-        const opponentPlayerNumber =
-          "player1" === bkg_playerNumber ? "player2" : "player1";
-        const opponent = players[opponentPlayerNumber];
-        if (opponent && "offline" === opponent.status)
-          return (
-            (bkg_statusMessage.textContent =
-              "Lawan telah keluar dari permainan."),
-            bkg_choices.classList.add("hidden"),
-            bkg_playAgainBtn.classList.add("hidden-view"),
-            (bkg_resultMessage.textContent = ""),
-            clearTimeout(afkTimeout),
-            void clearInterval(countdownInterval)
-          );
-        (bkg_player1NameEl.textContent = p1?.name || "Pemain 1"),
-          (bkg_player2NameEl.textContent = p2?.name || "Menunggu...");
+        bkg_player1NameEl.textContent = p1?.name || "Pemain 1";
+        bkg_player2NameEl.textContent = p2?.name || "Menunggu...";
         const choiceMap = { rock: "✊", paper: "✋", scissors: "✌" };
         const displayChoice = (player, element, isOpponent) => {
-          if (player?.choice) {
-            if (!isOpponent || (p1?.choice && p2?.choice)) {
-              element.textContent = choiceMap[player.choice];
-            } else {
-              element.textContent = "✅";
-            }
-          } else {
-            element.textContent = "?";
-          }
+          element.textContent = player?.choice
+            ? !isOpponent || (p1?.choice && p2?.choice)
+              ? choiceMap[player.choice]
+              : "✅"
+            : "?";
         };
         displayChoice(
           p1,
           bkg_player1ChoiceText,
-          "player1" !== bkg_playerNumber
-        ),
-          displayChoice(
-            p2,
-            bkg_player2ChoiceText,
-            "player2" !== bkg_playerNumber
-          ),
-          clearTimeout(afkTimeout),
-          clearInterval(countdownInterval),
-          p2
-            ? p1.choice && p2.choice
-              ? (bkg_choices.classList.add("hidden"),
-                bkg_playAgainBtn.classList.remove("hidden-view"),
-                "draw" === (e = determineWinner(p1.choice, p2.choice))
-                  ? (bkg_resultMessage.textContent = "Hasilnya Seri!")
-                  : e === bkg_playerNumber
-                  ? (bkg_resultMessage.textContent = "Kamu Menang! 🎉")
-                  : (bkg_resultMessage.textContent = "Kamu Kalah! 😞"),
-                (t = players[bkg_playerNumber]),
-                (a = players[opponentPlayerNumber]),
-                t.wantsToPlayAgain
-                  ? ((bkg_playAgainBtn.textContent = "Menunggu Lawan..."),
-                    (bkg_playAgainBtn.disabled = !0),
-                    (bkg_statusMessage.textContent =
-                      "Menunggu persetujuan lawan..."))
-                  : ((bkg_playAgainBtn.textContent = "Main Lagi"),
-                    (bkg_playAgainBtn.disabled = !1),
-                    a && a.wantsToPlayAgain
-                      ? (bkg_statusMessage.textContent =
-                          "Lawan menantangmu! Klik 'Main Lagi'.")
-                      : (bkg_statusMessage.textContent =
-                          "Klik 'Main Lagi' untuk rematch!")),
-                p1.wantsToPlayAgain &&
-                  p2.wantsToPlayAgain &&
-                  "player1" === bkg_playerNumber &&
-                  resetForNewRound())
-              : (bkg_choices.classList.remove("hidden"),
-                bkg_playAgainBtn.classList.add("hidden-view"),
-                (bkg_resultMessage.textContent = ""),
-                (e = 30),
-                (bkg_statusMessage.textContent = `Pilih jagoanmu! Waktu: ${e}s`),
-                (countdownInterval = setInterval(() => {
-                  e--,
-                    (bkg_statusMessage.textContent = `Pilih jagoanmu! Waktu: ${e}s`),
-                    e <= 0 && clearInterval(countdownInterval);
-                }, 1e3)),
-                (afkTimeout = setTimeout(() => handleAfkTimeout(p1, p2), 3e4)))
-            : ((bkg_statusMessage.textContent =
-                "Bagikan kode untuk mengundang temanmu!"),
-              bkg_choices.classList.add("hidden"),
-              bkg_playAgainBtn.classList.add("hidden-view"),
-              (bkg_resultMessage.textContent = ""));
-        var e, t, a;
+          bkg_playerNumber !== "player1"
+        );
+        displayChoice(
+          p2,
+          bkg_player2ChoiceText,
+          bkg_playerNumber !== "player2"
+        );
+        clearTimeout(afkTimeout);
+        clearInterval(countdownInterval);
+        if (p2) {
+          if (p1.choice && p2.choice) {
+            bkg_choices.classList.add("hidden");
+            bkg_playAgainBtn.classList.remove("hidden-view");
+            const winner = determineWinner(p1.choice, p2.choice);
+            bkg_resultMessage.textContent =
+              winner === "draw"
+                ? "Hasilnya Seri!"
+                : winner === bkg_playerNumber
+                ? "Kamu Menang! 🎉"
+                : "Kamu Kalah! 😞";
+            const me = playersData[bkg_playerNumber];
+            bkg_playAgainBtn.disabled = me.wantsToPlayAgain;
+            bkg_playAgainBtn.textContent = me.wantsToPlayAgain
+              ? "Menunggu Lawan..."
+              : "Main Lagi";
+            bkg_statusMessage.textContent = me.wantsToPlayAgain
+              ? "Menunggu persetujuan lawan..."
+              : opponent?.wantsToPlayAgain
+              ? "Lawan menantangmu! Klik 'Main Lagi'."
+              : "Klik 'Main Lagi' untuk rematch!";
+            if (
+              p1.wantsToPlayAgain &&
+              p2.wantsToPlayAgain &&
+              bkg_playerNumber === "player1"
+            )
+              resetForNewRound();
+          } else {
+            bkg_choices.classList.remove("hidden");
+            bkg_playAgainBtn.classList.add("hidden-view");
+            bkg_resultMessage.textContent = "";
+            let time = 30;
+            bkg_statusMessage.textContent = `Pilih jagoanmu! Waktu: ${time}s`;
+            countdownInterval = setInterval(() => {
+              time--;
+              bkg_statusMessage.textContent = `Pilih jagoanmu! Waktu: ${time}s`;
+              if (time <= 0) clearInterval(countdownInterval);
+            }, 1000);
+            afkTimeout = setTimeout(() => handleAfkTimeout(p1, p2), 30000);
+          }
+        } else {
+          bkg_statusMessage.textContent =
+            "Bagikan kode untuk mengundang temanmu!";
+          bkg_choices.classList.add("hidden");
+          bkg_playAgainBtn.classList.add("hidden-view");
+          bkg_resultMessage.textContent = "";
+        }
       }
-
       async function handleAfkTimeout(p1, p2) {
         const gameRef = doc(bkg_gamesCollection, bkg_currentRoomId),
           updates = {};
         let winnerMessage = "Waktu habis! ";
-        p1.choice || p2.choice
-          ? p1.choice
-            ? p2.choice ||
-              ((updates["players.player2.choice"] = "none"),
-              (winnerMessage += `${p2.name} tidak memilih, ${p1.name} menang!`))
-            : ((updates["players.player1.choice"] = "none"),
-              (winnerMessage += `${p1.name} tidak memilih, ${p2.name} menang!`))
-          : ((updates["players.player1.choice"] = "rock"),
-            (updates["players.player2.choice"] = "rock"),
-            (winnerMessage += "Tidak ada yang memilih, hasilnya Seri!")),
-          bkg_showToast(winnerMessage, "info"),
-          await updateDoc(gameRef, updates);
+        if (!p1.choice && !p2.choice) {
+          updates["players.player1.choice"] = "rock";
+          updates["players.player2.choice"] = "rock";
+          winnerMessage += "Tidak ada yang memilih, hasilnya Seri!";
+        } else if (!p2.choice) {
+          updates["players.player2.choice"] = "none";
+          winnerMessage += `${p2.name} tidak memilih, ${p1.name} menang!`;
+        } else if (!p1.choice) {
+          updates["players.player1.choice"] = "none";
+          winnerMessage += `${p1.name} tidak memilih, ${p2.name} menang!`;
+        }
+        bkg_showToast(winnerMessage, "info");
+        await updateDoc(gameRef, updates);
       }
       const determineWinner = (c1, c2) =>
         c1 === "none"
@@ -1025,66 +1255,74 @@
           ? "player1"
           : c1 === c2
           ? "draw"
-          : ("rock" === c1 && "scissors" === c2) ||
-            ("paper" === c1 && "rock" === c2) ||
-            ("scissors" === c1 && "paper" === c2)
+          : (c1 === "rock" && c2 === "scissors") ||
+            (c1 === "paper" && c2 === "rock") ||
+            (c1 === "scissors" && c2 === "paper")
           ? "player1"
           : "player2";
-      document
-        .getElementById("rock")
-        .addEventListener("click", () => bkg_handlePlayerChoice("rock"));
-      document
-        .getElementById("paper")
-        .addEventListener("click", () => bkg_handlePlayerChoice("paper"));
-      document
-        .getElementById("scissors")
-        .addEventListener("click", () => bkg_handlePlayerChoice("scissors"));
+      ["rock", "paper", "scissors"].forEach((choice) =>
+        document
+          .getElementById(choice)
+          .addEventListener("click", () => bkg_handlePlayerChoice(choice))
+      );
       const bkg_handlePlayerChoice = async (choice) => {
         if (!bkg_playerNumber || !bkg_currentRoomId) return;
-        const gameRef = doc(bkg_gamesCollection, bkg_currentRoomId),
-          fieldToUpdate = `players.${bkg_playerNumber}.choice`;
-        await updateDoc(gameRef, { [fieldToUpdate]: choice });
+        await updateDoc(doc(bkg_gamesCollection, bkg_currentRoomId), {
+          [`players.${bkg_playerNumber}.choice`]: choice,
+        });
       };
       bkg_playAgainBtn.addEventListener("click", async () => {
         if (!bkg_playerNumber || !bkg_currentRoomId) return;
-        const gameRef = doc(bkg_gamesCollection, bkg_currentRoomId),
-          fieldToUpdate = `players.${bkg_playerNumber}.wantsToPlayAgain`;
-        await updateDoc(gameRef, { [fieldToUpdate]: !0 });
+        await updateDoc(doc(bkg_gamesCollection, bkg_currentRoomId), {
+          [`players.${bkg_playerNumber}.wantsToPlayAgain`]: true,
+        });
       });
       async function resetForNewRound() {
         if (!bkg_currentRoomId) return;
-        const gameRef = doc(bkg_gamesCollection, bkg_currentRoomId);
-        await updateDoc(gameRef, {
+        await updateDoc(doc(bkg_gamesCollection, bkg_currentRoomId), {
           "players.player1.choice": null,
           "players.player2.choice": null,
-          "players.player1.wantsToPlayAgain": !1,
-          "players.player1.status": "online",
-          "players.player2.wantsToPlayAgain": !1,
-          "players.player2.status": "online",
+          "players.player1.wantsToPlayAgain": false,
+          "players.player2.wantsToPlayAgain": false,
         });
       }
       async function checkForSavedSession() {
-        const e = sessionStorage.getItem("bkg_roomId"),
-          t = sessionStorage.getItem("bkg_userId");
-        if (e && t && t === bkg_currentUserId) {
-          const a = doc(bkg_gamesCollection, e),
-            o = await getDoc(a);
-          if (o.exists()) {
-            const n = o.data().players,
-              r = n.player1?.uid === t ? n.player1 : n.player2;
-            r &&
-              ((bkg_currentPlayerName = r.name),
-              bkg_joinRoom(e),
-              bkg_showToast("Berhasil terhubung kembali ke room!", "success"));
-          } else clearSession();
+        const roomId = sessionStorage.getItem("bkg_roomId");
+        const userId = sessionStorage.getItem("bkg_userId");
+        if (!roomId || !userId || userId !== bkg_currentUserId) return;
+        const gameRef = doc(bkg_gamesCollection, roomId);
+        const gameDoc = await getDoc(gameRef);
+        if (gameDoc.exists()) {
+          const players = gameDoc.data().players;
+          const player =
+            players.player1?.uid === userId ? players.player1 : players.player2;
+          if (player) {
+            if (player.status === "offline")
+              await updateDoc(gameRef, {
+                [`players.${
+                  players.player1?.uid === userId ? "player1" : "player2"
+                }.status`]: "online",
+              });
+            bkg_currentPlayerName = player.name;
+            bkg_joinRoom(roomId);
+            bkg_showToast("Berhasil terhubung kembali ke room!", "success");
+          }
+        } else {
+          clearSession();
         }
       }
       onAuthStateChanged(bkg_auth, (user) => {
-        user && ((bkg_currentUserId = user.uid), checkForSavedSession());
+        if (user) {
+          bkg_currentUserId = user.uid;
+          checkForSavedSession();
+        }
       });
       signInAnonymously(bkg_auth).catch((err) =>
         console.error("BKG Auth Error:", err)
       );
+
+      // Default app view
+      switchMainApp("bkg");
     </script>
   </body>
 </html>
